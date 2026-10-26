@@ -45,7 +45,7 @@ describe('NavigationRail', () => {
 				Spotlight.setPointerMode(false);
 				expect(Spotlight.focus(`#${NAVIGATION_RAIL_ID}`)).toBe(true);
 			});
-			expect(document.activeElement).toBe(screen.getByRole('button', {name: /Photos/}));
+			expect(document.activeElement).toBe(screen.getByRole('button', {name: /Timeline/}));
 		}
 	});
 });
