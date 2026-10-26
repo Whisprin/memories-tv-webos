@@ -17,7 +17,6 @@ const NAV_ITEMS: {view: View; icon: string; label: string}[] = [
 	{view: 'photos', icon: 'picture', label: 'Photos'},
 	{view: 'albums', icon: 'folder', label: 'Albums'},
 	{view: 'places', icon: 'location', label: 'Places'},
-	{view: 'search', icon: 'search', label: 'Search'},
 ];
 
 const RailContainer = createSpotlightContainer({enterTo: 'last-focused'});

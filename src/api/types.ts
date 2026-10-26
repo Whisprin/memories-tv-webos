@@ -23,7 +23,7 @@ export interface ApiKeyConfig extends BaseAuthConfig {
 
 export type AuthConfig = UserCredentialsConfig | ApiKeyConfig;
 
-// One shared result for every auth path (credentials, API key, phone pairing); keep it single-source to avoid drift.
+// One shared result for every auth path (credentials, API key); keep it single-source to avoid drift.
 export type AuthSubmitResult = {success: true} | {success: false; errorMessage: string};
 
 // Credentials an auth form collects for a new account, consumed by useAccounts; single-source so form and hook can't drift.

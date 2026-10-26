@@ -11,7 +11,6 @@ export interface PhotoRepository {
 
 	getPlaces(): Promise<Place[]>;
 
-	searchSmart(query: string): Promise<TimelineAsset[]>;
 	searchByCity(city: string): Promise<TimelineAsset[]>;
 	searchRandomImages(scope: TimelineScope, size: number): Promise<TimelineAsset[]>;
 

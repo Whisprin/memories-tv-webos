@@ -1,34 +1,33 @@
 {
-	"name": "immich-tv-webos",
+	"name": "memories-tv-webos",
 	"version": "1.7.0",
-	"description": "Read-only Immich photo & video client for LG webOS TVs",
+	"description": "Read-only Nextcloud Memories photo & video client for LG webOS TVs (fork of immich-tv-webos)",
 	"author": "Quentin Jean-Amans <quentin.sqja@gmail.com> (https://github.com/Seeky91)",
 	"main": "src/index.tsx",
 	"scripts": {
 		"serve": "enact serve",
 		"pack": "enact pack",
-		"pack-p": "enact pack -p && node tools/transpile-legacy.mjs && node tools/prune-ilib.mjs",
+		"pack-p": "enact pack -p && node tools/prune-ilib.mjs",
 		"watch": "enact pack --watch",
 		"clean": "enact clean",
 		"lint": "enact lint .",
 		"typecheck": "tsc --noEmit",
 		"license": "enact license",
 		"test": "enact test",
-		"test-watch": "enact test --watch",
-		"test-service": "node service/test.js",
-		"test-tools": "node --test tools/legacy-css.test.mjs"
+		"test-watch": "enact test --watch"
 	},
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Seeky91/immich-tv-webos.git"
+		"url": "git+https://github.com/Whisprin/memories-tv-webos.git"
 	},
 	"bugs": {
-		"url": "https://github.com/Seeky91/immich-tv-webos/issues"
+		"url": "https://github.com/Whisprin/memories-tv-webos/issues"
 	},
-	"homepage": "https://github.com/Seeky91/immich-tv-webos#readme",
+	"homepage": "https://github.com/Whisprin/memories-tv-webos#readme",
 	"keywords": [
-		"immich",
+		"nextcloud",
+		"memories",
 		"webos",
 		"lg",
 		"tv",
@@ -44,16 +43,8 @@
 		"publicUrl": "./"
 	},
 	"browserslist": [
-		"Chrome >= 79"
+		"Chrome >= 132"
 	],
-	"cssnano": {
-		"preset": [
-			"default",
-			{
-				"overrideBrowserslist": "Chrome >= 53"
-			}
-		]
-	},
 	"eslintConfig": {
 		"extends": "enact-proxy"
 	},

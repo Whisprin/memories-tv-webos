@@ -9,7 +9,6 @@ interface ImmichSearchResponse {
 }
 
 const PEOPLE_LIMIT = 50;
-const SEARCH_PAGE_SIZE = 500;
 // Pages are fetched sequentially and laid out in one go (cities have no timeline scope): keep it TV-sized.
 const METADATA_SEARCH_PAGE_SIZE = 1000;
 const METADATA_SEARCH_MAX_PAGES = 3;
@@ -156,14 +155,6 @@ export class ImmichRepository implements PhotoRepository {
 				return [{city, country: a.exifInfo?.country ?? null, thumbnailAssetId: a.id}];
 			})
 			.sort((a, b) => a.city.localeCompare(b.city));
-	}
-
-	public async searchSmart(query: string): Promise<TimelineAsset[]> {
-		const response = await this.client.fetch<ImmichSearchResponse>('/search/smart', {
-			method: 'POST',
-			body: JSON.stringify({query, size: SEARCH_PAGE_SIZE}),
-		});
-		return this.searchItemsToAssets(response);
 	}
 
 	public async searchByCity(city: string): Promise<TimelineAsset[]> {

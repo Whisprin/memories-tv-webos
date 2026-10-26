@@ -23,7 +23,7 @@
 // The manifest must list exactly what remains on disk. Absent locales then degrade
 // gracefully to ilib's inlined LocaleInfo.defaultInfo (no throw).
 //
-// Runs in pack-p AFTER transpile-legacy.mjs (it reads the final bundle) and BEFORE
+// Runs in pack-p AFTER enact pack (it reads the final bundle) and BEFORE
 // ares-package. Idempotent.
 
 import { readdirSync, rmSync, readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';

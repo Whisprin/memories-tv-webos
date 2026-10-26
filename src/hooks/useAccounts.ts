@@ -15,7 +15,6 @@ import {
 } from '../utils/accountsStore';
 import {randomId} from '../utils/uuid';
 import {makeAuthErrorMessage} from './_authHelpers';
-import type {PairedAccountResult} from '../pairing/types';
 
 const accountToConfig = (acc: Account): UserCredentialsConfig | ApiKeyConfig => {
 	if (acc.method === AuthMethod.API_KEY) {
@@ -147,46 +146,6 @@ export const useAccounts = () => {
 		[persist, store],
 	);
 
-	// Phone-pairing login: the token was already minted by the service, so this
-	// only validates it and reuses the regular persist → repository tail.
-	const addPairedAccount = useCallback(
-		async (input: PairedAccountResult): Promise<AuthSubmitResult> => {
-			setIsValidating(true);
-			setValidationError('');
-			try {
-				const client = new APIClient({
-					baseUrl: input.baseUrl,
-					method: AuthMethod.USER_CREDENTIALS,
-					email: input.email,
-					accessToken: input.accessToken,
-				});
-				const ok = await validateAuth(client);
-				if (!ok) {
-					return {success: false, errorMessage: 'The server rejected the phone sign-in session. Try again.'};
-				}
-				const account: Account = {
-					id: randomId(),
-					baseUrl: input.baseUrl,
-					method: AuthMethod.USER_CREDENTIALS,
-					email: input.email,
-					accessToken: input.accessToken,
-					addedAt: Date.now(),
-				};
-				const next = addAccountToStore(store, account);
-				persist(next);
-				setRepository(new ImmichRepository(client));
-				setActiveAccountId(account.id);
-				return {success: true};
-			} catch (error) {
-				console.error('[useAccounts] addPairedAccount failed', error);
-				return {success: false, errorMessage: makeAuthErrorMessage(error, AuthMethod.USER_CREDENTIALS)};
-			} finally {
-				setIsValidating(false);
-			}
-		},
-		[persist, store],
-	);
-
 	const removeAccount = useCallback(
 		(id: string) => {
 			const next = removeAccountFromStore(store, id);
@@ -223,7 +182,6 @@ export const useAccounts = () => {
 			isValidating,
 			validationError,
 			addAccount,
-			addPairedAccount,
 			removeAccount,
 			switchTo,
 			setAsDefault,
@@ -235,7 +193,6 @@ export const useAccounts = () => {
 			isValidating,
 			validationError,
 			addAccount,
-			addPairedAccount,
 			removeAccount,
 			switchTo,
 			setAsDefault,

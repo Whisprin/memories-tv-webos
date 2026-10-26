@@ -49,7 +49,7 @@ jobs:
       - name: Package IPK
         run: |
           mkdir -p build
-          ares-package dist/ service/ -o ./build/ -n -e "*dev.js" -e "*test.js"
+          ares-package dist/ -o ./build/ -n
           ls -la build/
 
       - name: Generate manifest.json

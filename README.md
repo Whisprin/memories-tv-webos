@@ -1,3 +1,7 @@
+> **Memories TV — work in progress.** This is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) by Quentin Jean-Amans,
+> being converted into a client for [Nextcloud Memories](https://memories.gallery/). It is not usable yet.
+> Everything below this notice still describes the original Immich TV app.
+
 <p align="center">
   <img src="assets/icon-source.png" width="128" alt="Immich TV icon">
 </p>

@@ -22,7 +22,7 @@ interface VideoPlayerProps {
 // Sandstone exposes VideoPlayer with a Slottable-only typing — `autoCloseTimeout`,
 // `jumpBy`, `noAutoPlay`, `spotlightDisabled` and friends live on VideoPlayerBaseProps
 // and are forwarded at runtime through Sandstone's HOC chain. Spread with an `as any`
-// cast is the established pattern in this project (see SearchPanel onComplete).
+// cast is the established pattern in this project.
 //
 // HIDDEN_BACK_LABEL acts as a stable CSS hook: Sandstone renders its own back button
 // at top-left when controls are visible (duplicate of our MediaControls close X).

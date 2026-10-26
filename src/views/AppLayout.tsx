@@ -5,7 +5,6 @@ import {NavigationRail} from '../components/NavigationRail/NavigationRail';
 import MainPanel from './MainPanel';
 import AlbumsPanel from './AlbumsPanel';
 import PlacesPanel from './PlacesPanel';
-import SearchPanel from './SearchPanel';
 import type {View} from '../types/navigation';
 import css from './AppLayout.module.less';
 
@@ -39,7 +38,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 			{/*
 				MainPanel reste mounté (CSS-hidden) pour préserver la position de scroll
 				du timeline. Le cache TanStack survit déjà via QueryClientProvider en haut, donc l'unmount
-				ne perdrait que la position scroll. Albums/Search réinitialisent leur navigation interne à
+				ne perdrait que la position scroll. Albums/Places réinitialisent leur navigation interne à
 				chaque retour, ce qui est désiré côté UX.
 			*/}
 			<ViewContainer className={css.viewContainer}>
@@ -54,11 +53,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 				{activeView === 'places' && (
 					<div className={css.panelActive}>
 						<PlacesPanel contentWidth={contentWidth} />
-					</div>
-				)}
-				{activeView === 'search' && (
-					<div className={css.panelActive}>
-						<SearchPanel contentWidth={contentWidth} />
 					</div>
 				)}
 			</ViewContainer>

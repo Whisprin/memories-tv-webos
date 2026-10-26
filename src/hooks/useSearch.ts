@@ -6,7 +6,7 @@ import {groupAssetsByDay} from '../domain/transforms';
 import type {DayGroup} from '../domain/types';
 
 export interface SearchQuery {
-	type: 'smart' | 'city';
+	type: 'city';
 	value: string;
 }
 
@@ -18,10 +18,7 @@ export const useSearch = (query: SearchQuery | null): {
 	const repository = useRepository();
 	const result = useQuery({
 		queryKey: ['search', query?.type, query?.value],
-		queryFn: () => {
-			if (query!.type === 'smart') return repository.searchSmart(query!.value);
-			return repository.searchByCity(query!.value);
-		},
+		queryFn: () => repository.searchByCity(query!.value),
 		enabled: !!query,
 		...ASSETS_QUERY_CONFIG,
 	});

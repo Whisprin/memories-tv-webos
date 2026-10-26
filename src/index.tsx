@@ -1,5 +1,4 @@
 /* global ENACT_PACK_ISOMORPHIC */
-import './polyfills';
 import React from 'react';
 import {createRoot, hydrateRoot} from 'react-dom/client';
 

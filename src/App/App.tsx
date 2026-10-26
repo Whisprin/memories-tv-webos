@@ -9,8 +9,6 @@ import {APIError} from '../api/client';
 import AppLayout from '../views/AppLayout';
 import {AccountPanel} from '../views/AccountPanel/AccountPanel';
 import {deriveInitial, pickGradient} from '../utils/accountVisual';
-import {createPairingDriver} from '../pairing/createPairingDriver';
-import type {PairedAccountResult} from '../pairing/types';
 import type {AuthFormPayload, AuthSubmitResult} from '../components/AuthForm/AuthForm';
 
 import './attachErrorHandler';
@@ -27,13 +25,10 @@ const AppBase: React.FC = () => {
 		isValidating,
 		validationError,
 		addAccount,
-		addPairedAccount,
 		removeAccount,
 		switchTo,
 		setAsDefault,
 	} = useAccounts();
-
-	const pairingDriver = useMemo(() => createPairingDriver(), []);
 
 	const [overlayOpen, setOverlayOpen] = useState(false);
 
@@ -60,15 +55,6 @@ const AppBase: React.FC = () => {
 			return result;
 		},
 		[addAccount, closeOverlay],
-	);
-
-	const handleAddPairedAccount = useCallback(
-		async (result: PairedAccountResult): Promise<AuthSubmitResult> => {
-			const login = await addPairedAccount(result);
-			if (login.success) closeOverlay();
-			return login;
-		},
-		[addPairedAccount, closeOverlay],
 	);
 
 	const makeQueryClient = useCallback(
@@ -101,8 +87,6 @@ const AppBase: React.FC = () => {
 						onSetDefault={setAsDefault}
 						onRemove={removeAccount}
 						onAddAccount={handleAddAccount}
-						onAddPairedAccount={handleAddPairedAccount}
-						pairingDriver={pairingDriver}
 					/>
 				</Panels>
 			</div>
@@ -133,8 +117,6 @@ const AppBase: React.FC = () => {
 						onSetDefault={setAsDefault}
 						onRemove={removeAccount}
 						onAddAccount={handleAddAccount}
-						onAddPairedAccount={handleAddPairedAccount}
-						pairingDriver={pairingDriver}
 					/>
 				</Panels>
 			</div>
@@ -164,8 +146,6 @@ const AppBase: React.FC = () => {
 							onSetDefault={setAsDefault}
 							onRemove={removeAccount}
 							onAddAccount={handleAddAccount}
-							onAddPairedAccount={handleAddPairedAccount}
-							pairingDriver={pairingDriver}
 							onCloseOverlay={closeOverlay}
 						/>
 					)}
