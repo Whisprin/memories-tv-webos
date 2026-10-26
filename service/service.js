@@ -83,6 +83,10 @@ var PASS_HEADERS = ['content-type', 'content-length', 'content-range', 'accept-r
 var PROXY_PORTS = 10;
 var BATCH_WINDOW_MS = 10;
 var BATCH_MAX = 100;
+// multipreview only returns previews Nextcloud has already generated. Missing ones are
+// fetched one by one from /api/image/preview, which generates them (as Memories' web app
+// does); generating is expensive (videos need ffmpeg), so only a few run at once.
+var SINGLE_PREVIEW_CONCURRENCY = 4;
 
 var proxy = { servers: [], ports: [], token: null, auth: null, subs: 0, activity: null };
 
@@ -179,6 +183,48 @@ function answer(entry, status, body, type) {
   entry.res.end(body);
 }
 
+var singleQueue = [];
+var singleActive = 0;
+
+function queueSinglePreview(entry) {
+  if (entry.closed) return;
+  singleQueue.push(entry);
+  pumpSinglePreviews();
+}
+
+function pumpSinglePreviews() {
+  while (singleActive < SINGLE_PREVIEW_CONCURRENCY && singleQueue.length) {
+    var entry = singleQueue.shift();
+    if (entry.closed || !proxy.auth) continue;
+    singleActive++;
+    fetchSinglePreview(entry, function () {
+      singleActive--;
+      pumpSinglePreviews();
+    });
+  }
+}
+
+function fetchSinglePreview(entry, done) {
+  var finished = false;
+  var finish = function (status, body, type) {
+    if (finished) return;
+    finished = true;
+    answer(entry, status, body, type);
+    done();
+  };
+  var target = url.parse(proxy.auth.server + '/index.php/apps/memories/api/image/preview/' + entry.fileid +
+    '?x=' + entry.x + '&y=' + entry.y + '&a=' + entry.a);
+  var up = upstreamRequest(target, 'GET', authHeaders(), function (upRes) {
+    if (upRes.statusCode !== 200) { upRes.resume(); finish(upRes.statusCode === 404 ? 404 : 502); return; }
+    var chunks = [];
+    upRes.on('data', function (c) { chunks.push(c); });
+    upRes.on('end', function () { finish(200, Buffer.concat(chunks), upRes.headers['content-type'] || 'image/jpeg'); });
+    upRes.on('error', function () { finish(502); });
+  });
+  up.on('error', function () { finish(502); });
+  up.end();
+}
+
 function flushBatch() {
   if (batchTimer) { clearTimeout(batchTimer); batchTimer = null; }
   var batch = batchQueue.filter(function (e) { return !e.closed; });
@@ -188,11 +234,17 @@ function flushBatch() {
   var pending = {};
   batch.forEach(function (e) { pending[e.reqid] = e; });
   var body = JSON.stringify({ files: batch.map(function (e) {
-    return { reqid: e.reqid, fileid: e.fileid, x: e.x, y: e.y, a: e.a };
+    // Memories checks '1' === $file['a'], so a must be a string.
+    return { reqid: e.reqid, fileid: e.fileid, x: e.x, y: e.y, a: e.a ? '1' : '0' };
   }) });
   var target = url.parse(proxy.auth.server + '/index.php/apps/memories/api/image/multipreview');
   var failAll = function (status) {
     Object.keys(pending).forEach(function (k) { answer(pending[k], status); });
+    pending = {};
+  };
+  // Whatever multipreview didn't deliver is fetched one by one (and generated if needed).
+  var fetchRemaining = function () {
+    Object.keys(pending).forEach(function (k) { queueSinglePreview(pending[k]); });
     pending = {};
   };
 
@@ -200,7 +252,7 @@ function flushBatch() {
     'Content-Type': 'application/json',
     'Content-Length': Buffer.byteLength(body, 'utf8')
   }), function (upRes) {
-    if (upRes.statusCode !== 200) { upRes.resume(); failAll(502); return; }
+    if (upRes.statusCode !== 200) { upRes.resume(); fetchRemaining(); return; }
     // Frames: [1 byte n][n bytes JSON {reqid, len, type}][len bytes image]
     var buf = Buffer.alloc(0);
     upRes.on('data', function (chunk) {
@@ -218,7 +270,7 @@ function flushBatch() {
         if (e) { delete pending[hdr.reqid]; answer(e, 200, img, hdr.type); }
       }
     });
-    upRes.on('end', function () { failAll(404); }); // files the server skipped
+    upRes.on('end', fetchRemaining); // files without a generated preview yet
     upRes.on('error', function () { failAll(502); });
   });
   up.on('error', function (err) {
