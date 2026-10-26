@@ -1,4 +1,4 @@
-import {MemoriesRepository, albumToAlbum, dayIdToDate, photoToAsset, type MediaUrls} from './MemoriesRepository';
+import {MemoriesRepository, albumToAlbum, dayIdToDate, faceToPerson, photoToAsset, type MediaUrls} from './MemoriesRepository';
 import type {NextcloudClient} from './client';
 
 // 2026-03-01 is day 20513 since 1970-01-01.
@@ -145,5 +145,46 @@ describe('albums', () => {
 	test('an unknown album is a 404', async () => {
 		const memories = jest.fn().mockResolvedValue([holiday]);
 		await expect(makeRepo(memories).getAlbum('alice/Nope')).rejects.toMatchObject({status: 404});
+	});
+});
+
+describe('people', () => {
+	const anna = {cluster_id: 12, name: 'Anna', user_id: 'alice', count: 40};
+	const unnamed = {cluster_id: 7, name: '', user_id: 'alice', count: 90};
+	const emptyCluster = {cluster_id: 3, name: 'Gone', user_id: 'alice', count: 0};
+
+	const reply = (config: object, faces: object[] = []) =>
+		jest.fn((path: string) => Promise.resolve(path === '/config' ? config : path.startsWith('/clusters/') ? faces : []));
+
+	test('maps a face cluster to a person addressed as user/cluster id', () => {
+		expect(faceToPerson(anna)).toEqual({id: 'alice/12', name: 'Anna', assetCount: 40});
+	});
+
+	test('no people when no face recognition app is enabled', async () => {
+		const memories = reply({recognize_enabled: false, facerecognition_enabled: false});
+		expect(await makeRepo(memories).getPeople()).toEqual([]);
+		expect(memories).toHaveBeenCalledTimes(1);
+	});
+
+	test('lists Recognize people with photos, most photos first', async () => {
+		const memories = reply({recognize_enabled: true}, [anna, unnamed, emptyCluster]);
+		const people = await makeRepo(memories).getPeople();
+		expect(memories).toHaveBeenCalledWith('/clusters/recognize');
+		expect(people.map((p) => p.id)).toEqual(['alice/7', 'alice/12']);
+	});
+
+	test('face crops come from the cluster preview through the proxy', async () => {
+		const repo = makeRepo(reply({recognize_enabled: true}, [anna]));
+		await repo.getPeople();
+		expect(repo.faceUrl('alice/12')).toBe('proxy:12/api/clusters/recognize/preview?name=alice%2F12');
+	});
+
+	test('with the Face Recognition app, its clusters and timeline filter are used', async () => {
+		const memories = reply({facerecognition_enabled: true}, [anna]);
+		const repo = makeRepo(memories);
+		await repo.getPeople();
+		expect(memories).toHaveBeenCalledWith('/clusters/facerecognition');
+		await repo.getBuckets({personId: 'alice/12'});
+		expect(memories).toHaveBeenCalledWith('/days?facerecognition=alice%2F12', {}, 30000);
 	});
 });

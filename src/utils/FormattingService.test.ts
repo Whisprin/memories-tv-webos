@@ -41,4 +41,9 @@ describe('formatCount', () => {
 		expect(formatCount(0, 'album')).toBe('0 albums');
 		expect(formatCount(1234, 'item')).toBe('1,234 items');
 	});
+
+	it('takes an irregular plural', () => {
+		expect(formatCount(1, 'person', 'people')).toBe('1 person');
+		expect(formatCount(3, 'person', 'people')).toBe('3 people');
+	});
 });

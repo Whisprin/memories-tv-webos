@@ -5,6 +5,7 @@ import {useWebOSKeys} from '../hooks/useWebOSKeys';
 import {NavigationRail} from '../components/NavigationRail/NavigationRail';
 import MainPanel from './MainPanel';
 import AlbumsPanel from './AlbumsPanel';
+import PeoplePanel from './PeoplePanel';
 import PlacesPanel from './PlacesPanel';
 import type {View} from '../types/navigation';
 import css from './AppLayout.module.less';
@@ -54,6 +55,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 				{activeView === 'albums' && (
 					<div className={css.panelActive}>
 						<AlbumsPanel contentWidth={contentWidth} />
+					</div>
+				)}
+				{activeView === 'people' && (
+					<div className={css.panelActive}>
+						<PeoplePanel contentWidth={contentWidth} />
 					</div>
 				)}
 				{activeView === 'places' && (

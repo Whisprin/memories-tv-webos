@@ -37,6 +37,23 @@ interface MemoriesAlbum {
 	last_added_photo?: number;
 }
 
+// GET /api/clusters/recognize (or facerecognition): one entry per person.
+interface MemoriesFace {
+	cluster_id: number | string;
+	// empty for people who haven't been named yet
+	name: string;
+	user_id: string;
+	count: number;
+}
+
+// The parts of GET /api/config this app uses.
+interface MemoriesConfig {
+	recognize_enabled?: boolean;
+	facerecognition_enabled?: boolean;
+}
+
+type FaceBackend = 'recognize' | 'facerecognition';
+
 // Media URLs. In the app these come from the helper service's localhost proxy, which adds
 // the Authorization header that <img>/<video> can't send (see platform/helperService.ts).
 export interface MediaUrls {
@@ -87,14 +104,11 @@ export function photoToAsset(p: MemoriesPhoto): TimelineAsset {
 	};
 }
 
-// Memories filters the timeline with query parameters.
-function scopeQuery(scope: TimelineScope): string {
-	if (scope.albumId) return `?albums=${encodeURIComponent(scope.albumId)}`;
-	if (scope.personId) return `?recognize=${encodeURIComponent(scope.personId)}`;
-	return '';
+// A person is addressed as '<user>/<cluster id>'. Memories accepts that both as the timeline
+// filter value and as the preview name, and the numeric id stays unique even if names repeat.
+export function faceToPerson(f: MemoriesFace): Person {
+	return {id: `${f.user_id}/${f.cluster_id}`, name: f.name, assetCount: f.count};
 }
-
-const scopeKey = (scope: TimelineScope): string => scopeQuery(scope) || 'main';
 
 export class MemoriesRepository implements PhotoRepository {
 	private client: NextcloudClient;
@@ -102,6 +116,9 @@ export class MemoriesRepository implements PhotoRepository {
 	// Day lists per scope, kept from getBuckets so month loads know which days to fetch.
 	private days = new Map<string, Promise<MemoriesDay[]>>();
 	private albums: Promise<MemoriesAlbum[]> | null = null;
+	private config: Promise<MemoriesConfig> | null = null;
+	// The face-recognition app in use, known after getPeople
+	private faceBackend: FaceBackend = 'recognize';
 
 	constructor(client: NextcloudClient, media: MediaUrls) {
 		this.client = client;
@@ -113,11 +130,18 @@ export class MemoriesRepository implements PhotoRepository {
 		this.media.stop?.();
 	}
 
+	// Memories filters the timeline with query parameters.
+	private scopeQuery(scope: TimelineScope): string {
+		if (scope.albumId) return `?albums=${encodeURIComponent(scope.albumId)}`;
+		if (scope.personId) return `?${this.faceBackend}=${encodeURIComponent(scope.personId)}`;
+		return '';
+	}
+
 	private loadDays(scope: TimelineScope, refresh = false): Promise<MemoriesDay[]> {
-		const key = scopeKey(scope);
+		const key = this.scopeQuery(scope) || 'main';
 		let days = refresh ? undefined : this.days.get(key);
 		if (!days) {
-			days = this.client.memories<MemoriesDay[]>(`/days${scopeQuery(scope)}`, {}, 30000);
+			days = this.client.memories<MemoriesDay[]>(`/days${this.scopeQuery(scope)}`, {}, 30000);
 			this.days.set(key, days);
 			// A failed load must not stick in the cache.
 			days.catch(() => this.days.delete(key));
@@ -126,7 +150,7 @@ export class MemoriesRepository implements PhotoRepository {
 	}
 
 	private fetchDays(dayIds: number[], scope: TimelineScope, signal?: AbortSignal): Promise<MemoriesPhoto[]> {
-		return this.client.memories<MemoriesPhoto[]>(`/days${scopeQuery(scope)}`, {method: 'POST', body: JSON.stringify({dayIds}), signal}, 30000);
+		return this.client.memories<MemoriesPhoto[]>(`/days${this.scopeQuery(scope)}`, {method: 'POST', body: JSON.stringify({dayIds}), signal}, 30000);
 	}
 
 	public async getBuckets(scope: TimelineScope = MAIN_TIMELINE): Promise<TimelineBucket[]> {
@@ -175,11 +199,29 @@ export class MemoriesRepository implements PhotoRepository {
 		return {...albumToAlbum(album), order: 'desc'};
 	}
 
-	// People and places follow in the next steps.
-
-	public async getPeople(): Promise<Person[]> {
-		return [];
+	private loadConfig(): Promise<MemoriesConfig> {
+		if (!this.config) {
+			const config = this.client.memories<MemoriesConfig>('/config');
+			this.config = config;
+			config.catch(() => {
+				if (this.config === config) this.config = null;
+			});
+		}
+		return this.config;
 	}
+
+	// People come from Recognize (or the older Face Recognition app), whichever Memories has
+	// enabled; none means no people. Most photos first, as Memories lists them.
+	public async getPeople(): Promise<Person[]> {
+		const config = await this.loadConfig();
+		const backend: FaceBackend | null = config.recognize_enabled ? 'recognize' : config.facerecognition_enabled ? 'facerecognition' : null;
+		if (!backend) return [];
+		this.faceBackend = backend;
+		const faces = await this.client.memories<MemoriesFace[]>(`/clusters/${backend}`);
+		return faces.filter((f) => f.count > 0).sort((a, b) => b.count - a.count).map(faceToPerson);
+	}
+
+	// Places follow in the next step.
 
 	public async getPlaces(): Promise<Place[]> {
 		return [];
@@ -221,7 +263,9 @@ export class MemoriesRepository implements PhotoRepository {
 		return this.media.memoriesUrl(`api/stream/${assetId}`, Number(assetId));
 	}
 
-	public faceUrl(): string {
-		return '';
+	// The cluster preview is cropped to the face on the server.
+	public faceUrl(personId: string): string {
+		const shard = Number(personId.split('/').pop()) || 0;
+		return this.media.memoriesUrl(`api/clusters/${this.faceBackend}/preview?name=${encodeURIComponent(personId)}`, shard);
 	}
 }
