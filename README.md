@@ -52,6 +52,7 @@ There is no release or Homebrew Channel package yet. Build the app and install i
    ```bash
    npm install -g @enact/cli @webos-tools/cli
    ```
+   To install global packages without root, point npm at your home directory first (as the [npm docs](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally) recommend): `npm config set prefix ~/.local`, and make sure `~/.local/bin` is on your `PATH`.
 2. Register your TV with the webOS CLI (`ares-setup-device`). The Makefile expects the device name `LG_TV`; use `DEVICE=<name>` for another one.
 3. Build, install and launch:
    ```bash
