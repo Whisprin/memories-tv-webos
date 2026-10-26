@@ -21,6 +21,7 @@ const NAV_ITEMS: {view: View; icon: string; label: string}[] = [
 	{view: 'albums', icon: 'files', label: 'Albums'},
 	{view: 'people', icon: 'profile', label: 'People'},
 	{view: 'archive', icon: 'hide', label: 'Archive'},
+	{view: 'onthisday', icon: 'scheduler', label: 'On this day'},
 	{view: 'places', icon: 'location', label: 'Places'},
 	{view: 'tags', icon: 'bookmark', label: 'Tags'},
 ];

@@ -1,4 +1,4 @@
-import {MemoriesRepository, albumToAlbum, dayIdToDate, faceToPerson, photoToAsset, type MediaUrls} from './MemoriesRepository';
+import {MemoriesRepository, onThisDayIds, albumToAlbum, dayIdToDate, faceToPerson, photoToAsset, type MediaUrls} from './MemoriesRepository';
 import type {NextcloudClient} from './client';
 
 // 2026-03-01 is day 20513 since 1970-01-01.
@@ -285,5 +285,40 @@ describe('folders', () => {
 		expect(memories).toHaveBeenCalledWith('/days?folder=%2FPhotos', {}, 30000);
 		await makeRepo(memories).getBuckets({folder: '/Photos', recursive: true});
 		expect(memories).toHaveBeenCalledWith('/days?folder=%2FPhotos&recursive=1', {}, 30000);
+	});
+});
+
+describe('on this day', () => {
+	const dayId = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86400000;
+	const days = ['2026-10-26', '2025-10-27', '2025-10-26', '2025-10-20', '2019-10-24', '2016-02-29'].map((iso) => ({dayid: dayId(iso), count: 2}));
+	const reply = (config: object) => jest.fn((path: string) => Promise.resolve(path === '/config' ? config : path === '/days' ? days : []));
+
+	beforeEach(() => jest.useFakeTimers({now: new Date(2026, 9, 26, 23, 30), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask']}));
+	afterEach(() => jest.useRealTimers());
+
+	test('covers the same local date in each past year, ± the range, but not today', () => {
+		const ids = onThisDayIds(new Date(2026, 9, 26, 23, 30), 1);
+		expect(ids.has(dayId('2025-10-26'))).toBe(true);
+		expect(ids.has(dayId('2025-10-27'))).toBe(true);
+		expect(ids.has(dayId('1906-10-25'))).toBe(true);
+		expect(ids.has(dayId('2025-10-28'))).toBe(false);
+		expect(ids.has(dayId('2026-10-26'))).toBe(false);
+		expect(ids.size).toBe(120 * 3);
+	});
+
+	test('filters the main timeline to those days, by default the exact date only', async () => {
+		const memories = reply({});
+		const repo = makeRepo(memories);
+		expect(await repo.getBuckets({onThisDay: true})).toEqual([{timeBucket: '2025-10-01', count: 2}]);
+		await repo.getBucketAssets('2025-10-01', {onThisDay: true});
+		expect(memories).toHaveBeenCalledWith('/days', expect.objectContaining({method: 'POST', body: JSON.stringify({dayIds: [dayId('2025-10-26')]})}), 30000);
+	});
+
+	test('uses the day range from Memories', async () => {
+		const buckets = await makeRepo(reply({onthisday_day_range: 2})).getBuckets({onThisDay: true});
+		expect(buckets).toEqual([
+			{timeBucket: '2025-10-01', count: 4},
+			{timeBucket: '2019-10-01', count: 2},
+		]);
 	});
 });

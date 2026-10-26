@@ -9,6 +9,7 @@ import FavoritesPanel from './FavoritesPanel';
 import AlbumsPanel from './AlbumsPanel';
 import PeoplePanel from './PeoplePanel';
 import ArchivePanel from './ArchivePanel';
+import OnThisDayPanel from './OnThisDayPanel';
 import PlacesPanel from './PlacesPanel';
 import TagsPanel from './TagsPanel';
 import type {View} from '../types/navigation';
@@ -79,6 +80,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 				{activeView === 'archive' && (
 					<div className={css.panelActive}>
 						<ArchivePanel contentWidth={contentWidth} />
+					</div>
+				)}
+				{activeView === 'onthisday' && (
+					<div className={css.panelActive}>
+						<OnThisDayPanel contentWidth={contentWidth} />
 					</div>
 				)}
 				{activeView === 'places' && (

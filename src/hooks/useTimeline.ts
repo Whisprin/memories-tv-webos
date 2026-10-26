@@ -6,22 +6,23 @@ import {groupAssetsByDay} from '../domain/transforms';
 import type {PhotoRepository} from '../domain/PhotoRepository';
 import {MAIN_TIMELINE, type DayGroup, type TimelineScope} from '../domain/types';
 
-const scopeKey = ({albumId, personId, placeId, tagId, folder, recursive, favorites, archive, order}: TimelineScope): string =>
-	albumId
-		? `album:${albumId}:${order ?? 'desc'}`
-		: personId
-			? `person:${personId}`
-			: placeId
-				? `place:${placeId}`
-				: tagId
-					? `tag:${tagId}`
-					: folder
-						? `folder:${recursive ? 'all' : 'here'}:${folder}`
-						: favorites
-					? 'favorites'
-					: archive
-						? 'archive'
-						: 'main';
+// Local calendar date, so On this day is cached per day.
+const today = (): string => {
+	const d = new Date();
+	return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+};
+
+const scopeKey = ({albumId, personId, placeId, tagId, folder, recursive, favorites, archive, onThisDay, order}: TimelineScope): string => {
+	if (albumId) return `album:${albumId}:${order ?? 'desc'}`;
+	if (personId) return `person:${personId}`;
+	if (placeId) return `place:${placeId}`;
+	if (tagId) return `tag:${tagId}`;
+	if (folder) return `folder:${recursive ? 'all' : 'here'}:${folder}`;
+	if (favorites) return 'favorites';
+	if (archive) return 'archive';
+	if (onThisDay) return `onthisday:${today()}`;
+	return 'main';
+};
 
 export interface RequestMonthsOptions {
 	// Clears failed months first so an explicit user action (scrubber jump) retries them,

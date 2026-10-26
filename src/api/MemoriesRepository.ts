@@ -72,6 +72,8 @@ interface MemoriesConfig {
 	systemtags_enabled?: boolean;
 	// the user's Folders root in Memories, '/' by default
 	folders_path?: string;
+	// On this day: days either side of today's date to include (0 by default)
+	onthisday_day_range?: number;
 }
 
 type FaceBackend = 'recognize' | 'facerecognition';
@@ -96,6 +98,25 @@ const RANDOM_MAX_DAYS = 12;
 
 export const dayIdToDate = (dayid: number): string => new Date(dayid * DAY_MS).toISOString().slice(0, 10);
 const monthBucketOf = (dayid: number): string => `${dayIdToDate(dayid).slice(0, 7)}-01`;
+
+// How many past years On this day looks back, as in Memories.
+const ON_THIS_DAY_YEARS = 120;
+const ON_THIS_DAY_MAX_RANGE = 30;
+
+// The dayids On this day covers: today's local date, ± range days, in each past year.
+// Same calculation as Memories (dayids count local calendar days since 1970-01-01).
+export const onThisDayIds = (now: Date, range: number): Set<number> => {
+	const r = Math.min(Math.max(Math.floor(range) || 0, 0), ON_THIS_DAY_MAX_RANGE);
+	const ids = new Set<number>();
+	for (let i = 1; i <= ON_THIS_DAY_YEARS; i++) {
+		const year = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+		year.setUTCFullYear(now.getFullYear() - i);
+		for (let j = -r; j <= r; j++) {
+			ids.add(Math.floor(year.getTime() / DAY_MS) + j);
+		}
+	}
+	return ids;
+};
 
 // Albums are addressed as '<owner>/<album name>', which is also the timeline filter value.
 const albumIdOf = (a: MemoriesAlbum): string => `${a.user}/${a.name}`;
@@ -165,15 +186,23 @@ export class MemoriesRepository implements PhotoRepository {
 	}
 
 	private loadDays(scope: TimelineScope, refresh = false): Promise<MemoriesDay[]> {
-		const key = this.scopeQuery(scope) || 'main';
+		const key = scope.onThisDay ? 'onthisday' : this.scopeQuery(scope) || 'main';
 		let days = refresh ? undefined : this.days.get(key);
 		if (!days) {
-			days = this.client.memories<MemoriesDay[]>(`/days${this.scopeQuery(scope)}`, {}, 30000);
+			days = scope.onThisDay ? this.loadOnThisDay(refresh) : this.client.memories<MemoriesDay[]>(`/days${this.scopeQuery(scope)}`, {}, 30000);
 			this.days.set(key, days);
 			// A failed load must not stick in the cache.
 			days.catch(() => this.days.delete(key));
 		}
 		return days;
+	}
+
+	// Memories has no On this day filter: its web app picks the matching days itself, and so do we,
+	// from the main timeline's day list.
+	private async loadOnThisDay(refresh: boolean): Promise<MemoriesDay[]> {
+		const [all, config] = await Promise.all([this.loadDays(MAIN_TIMELINE, refresh), this.loadConfig()]);
+		const ids = onThisDayIds(new Date(), Number(config.onthisday_day_range ?? 0));
+		return all.filter((d) => ids.has(d.dayid));
 	}
 
 	private fetchDays(dayIds: number[], scope: TimelineScope, signal?: AbortSignal): Promise<MemoriesPhoto[]> {

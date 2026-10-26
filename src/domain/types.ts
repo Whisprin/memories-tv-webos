@@ -52,6 +52,8 @@ export interface TimelineScope {
 	favorites?: boolean;
 	// only archived photos and videos (hidden from the main timeline)
 	archive?: boolean;
+	// photos and videos taken on today's date (± a few days, as set in Memories) in past years
+	onThisDay?: boolean;
 	order?: AssetOrder;
 }
 
