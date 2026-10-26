@@ -1,6 +1,6 @@
 {
 	"id": "com.wisp.memoriestv",
-	"version": "1.7.0",
+	"version": "0.5.0",
 	"vendor": "wisp",
 	"type": "web",
 	"main": "index.html",
