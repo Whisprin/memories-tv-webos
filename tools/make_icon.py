@@ -1,4 +1,4 @@
-# Generates the Memories TV app icons (an original design: two photo cards on a dusk gradient).
+# Generates the Memories TV app icons (an original design: two photo cards on a Nextcloud-style blue).
 # Usage: python3 tools/make_icon.py  (needs Pillow and numpy). Writes assets/icon-source.png,
 # assets/icon-store.png and webos-meta/icon{,-large,-mini}.png.
 import numpy as np
@@ -27,11 +27,11 @@ def rounded_mask(w, h, r):
     ImageDraw.Draw(m).rounded_rectangle([0, 0, w - 1, h - 1], r, fill=255)
     return m
 
-# Background: deep night-blue to violet
-bg = diag_gradient(S, S, (16, 24, 58), (74, 32, 110)).convert('RGBA')
-# soft warm glow behind the cards
+# Background: the blue common to Nextcloud and its apps (around #0082c9), lighter top-left
+bg = diag_gradient(S, S, (26, 158, 226), (0, 98, 160)).convert('RGBA')
+# soft light behind the cards
 glow = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-ImageDraw.Draw(glow).ellipse([S*0.18, S*0.2, S*0.86, S*0.88], fill=(255, 140, 90, 90))
+ImageDraw.Draw(glow).ellipse([S*0.18, S*0.2, S*0.86, S*0.88], fill=(255, 255, 255, 46))
 bg = Image.alpha_composite(bg, glow.filter(ImageFilter.GaussianBlur(S * 0.09)))
 
 def photo_card(w, h, scene):
@@ -57,10 +57,12 @@ def sunset_scene(w, h):
                (w, h), (0, h)], fill=(58, 34, 96, 255))
     return img.convert('RGB')
 
-def sea_scene(w, h):
-    img = vgradient(w, h, (120, 214, 236), (40, 132, 196)).convert('RGBA')
+def meadow_scene(w, h):
+    img = vgradient(w, h, (214, 240, 255), (168, 220, 246)).convert('RGBA')
     d = ImageDraw.Draw(img)
-    d.rectangle([0, h * 0.62, w, h], fill=(28, 92, 160, 255))
+    d.polygon([(0, h * 0.70), (w * 0.35, h * 0.52), (w * 0.70, h * 0.64), (w, h * 0.50),
+               (w, h), (0, h)], fill=(96, 190, 120, 255))
+    d.polygon([(0, h * 0.86), (w * 0.45, h * 0.70), (w, h * 0.82), (w, h), (0, h)], fill=(54, 146, 98, 255))
     return img.convert('RGB')
 
 def place(layer, card, angle, center):
@@ -76,7 +78,7 @@ def place(layer, card, angle, center):
     layer.alpha_composite(rot, (x, y))
 
 cw, ch = int(S * 0.54), int(S * 0.44)
-place(bg, photo_card(cw, ch, sea_scene), 11, (S * 0.57, S * 0.43))
+place(bg, photo_card(cw, ch, meadow_scene), 11, (S * 0.57, S * 0.43))
 place(bg, photo_card(cw, ch, sunset_scene), -6, (S * 0.48, S * 0.58))
 
 import os
