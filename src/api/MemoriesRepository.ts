@@ -1,6 +1,6 @@
 import {APIError, NextcloudClient} from './client';
 import type {PhotoRepository} from '../domain/PhotoRepository';
-import {MAIN_TIMELINE, type Album, type AlbumDetails, type Person, type Place, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
+import {MAIN_TIMELINE, type Album, type AlbumDetails, type Collection, type Person, type Place, type Tag, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
 
 // Memories (https://memories.gallery) groups the library by day: GET /api/days returns
 // [{dayid, count}] with dayid = days since 1970-01-01 in the photos' local time, newest
@@ -46,11 +46,12 @@ interface MemoriesFace {
 	count: number;
 }
 
-// GET /api/clusters/places: places from reverse geocoding, with an id per place.
-interface MemoriesPlace {
+// GET /api/clusters/places and /api/clusters/tags: one entry per place or tag.
+interface MemoriesCluster {
 	cluster_id: number | string;
 	name: string;
 	count: number;
+	// photo chosen as cover in Memories, if any
 	cover?: number | null;
 }
 
@@ -58,6 +59,7 @@ interface MemoriesPlace {
 interface MemoriesConfig {
 	recognize_enabled?: boolean;
 	facerecognition_enabled?: boolean;
+	systemtags_enabled?: boolean;
 }
 
 type FaceBackend = 'recognize' | 'facerecognition';
@@ -143,6 +145,7 @@ export class MemoriesRepository implements PhotoRepository {
 		if (scope.albumId) return `?albums=${encodeURIComponent(scope.albumId)}`;
 		if (scope.personId) return `?${this.faceBackend}=${encodeURIComponent(scope.personId)}`;
 		if (scope.placeId) return `?places=${encodeURIComponent(scope.placeId)}`;
+		if (scope.tagId) return `?tags=${encodeURIComponent(scope.tagId)}`;
 		if (scope.favorites) return '?fav=1';
 		if (scope.archive) return '?archive=1';
 		return '';
@@ -232,20 +235,32 @@ export class MemoriesRepository implements PhotoRepository {
 		return faces.filter((f) => f.count > 0).sort((a, b) => b.count - a.count).map(faceToPerson);
 	}
 
-	// Places with photos, by name. The cover is the chosen photo if Memories has one, else the
-	// cluster preview (which picks a photo on the server).
-	public async getPlaces(): Promise<Place[]> {
-		const places = await this.client.memories<MemoriesPlace[]>('/clusters/places');
-		return places
-			.filter((p) => p.count > 0)
-			.map((p) => {
-				const id = String(p.cluster_id);
-				const coverUrl = p.cover && p.cover > 0
-					? this.thumbnailUrl(String(p.cover))
-					: this.media.memoriesUrl(`api/clusters/places/preview?name=${encodeURIComponent(id)}`, Number(id) || 0);
-				return {id, name: p.name || id, assetCount: p.count, coverUrl};
+	// Clusters with photos, by name. The cover is the photo chosen in Memories, else the cluster
+	// preview (which picks a photo on the server). idOf gives the value the timeline filter takes.
+	private async loadCollections(backend: 'places' | 'tags', idOf: (c: MemoriesCluster) => string): Promise<Collection[]> {
+		const clusters = await this.client.memories<MemoriesCluster[]>(`/clusters/${backend}`);
+		return clusters
+			.filter((c) => c.count > 0)
+			.map((c) => {
+				const id = idOf(c);
+				const coverUrl = c.cover && c.cover > 0
+					? this.thumbnailUrl(String(c.cover))
+					: this.media.memoriesUrl(`api/clusters/${backend}/preview?name=${encodeURIComponent(id)}`, Number(c.cluster_id) || 0);
+				return {id, name: c.name || id, assetCount: c.count, coverUrl};
 			})
 			.sort((a, b) => a.name.localeCompare(b.name));
+	}
+
+	// Places from Memories' reverse geocoding, filtered by id.
+	public getPlaces(): Promise<Place[]> {
+		return this.loadCollections('places', (c) => String(c.cluster_id));
+	}
+
+	// Nextcloud's collaborative (system) tags, filtered by name. None if Memories has them off.
+	public async getTags(): Promise<Tag[]> {
+		const config = await this.loadConfig();
+		if (config.systemtags_enabled === false) return [];
+		return this.loadCollections('tags', (c) => c.name);
 	}
 
 	// Memories has no random endpoint: sample random days and pick images from them.

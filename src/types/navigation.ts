@@ -1,4 +1,4 @@
-export type View = 'photos' | 'favorites' | 'albums' | 'people' | 'archive' | 'places';
+export type View = 'photos' | 'favorites' | 'albums' | 'people' | 'archive' | 'places' | 'tags';
 
 /** Shared props for every route-level panel mounted by AppLayout. */
 export interface RoutePanelProps {

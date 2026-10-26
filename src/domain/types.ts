@@ -42,6 +42,8 @@ export interface TimelineScope {
 	albumId?: string;
 	personId?: string;
 	placeId?: string;
+	// tag name
+	tagId?: string;
 	// only photos and videos marked as favourite in Nextcloud
 	favorites?: boolean;
 	// only archived photos and videos (hidden from the main timeline)
@@ -51,13 +53,17 @@ export interface TimelineScope {
 
 export const MAIN_TIMELINE: TimelineScope = {};
 
-export interface Place {
+// A named group of photos, browsed as a grid of covers that each open a filtered timeline.
+export interface Collection {
 	id: string;
 	name: string;
 	assetCount: number;
 	// cover image, ready for <img src>
 	coverUrl: string;
 }
+
+export type Place = Collection;
+export type Tag = Collection;
 
 export interface Person {
 	id: string;

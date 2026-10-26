@@ -226,3 +226,32 @@ describe('archive', () => {
 		expect(memories).toHaveBeenCalledWith('/days?archive=1', {}, 30000);
 	});
 });
+
+describe('tags', () => {
+	const reply = (config: object, tags: object[]) =>
+		jest.fn((path: string) => Promise.resolve(path === '/config' ? config : path === '/clusters/tags' ? tags : []));
+
+	test('no tags when Memories has system tags off', async () => {
+		const memories = reply({systemtags_enabled: false}, [{cluster_id: 1, name: 'Holiday', count: 3}]);
+		expect(await makeRepo(memories).getTags()).toEqual([]);
+		expect(memories).not.toHaveBeenCalledWith('/clusters/tags');
+	});
+
+	test('lists tags with photos by name; a tag is addressed by its name', async () => {
+		const memories = reply({systemtags_enabled: true}, [
+			{cluster_id: 4, name: 'Sunset', count: 9, cover: 77},
+			{cluster_id: 2, name: 'Beach day', count: 5, cover: null},
+			{cluster_id: 3, name: 'Unused', count: 0},
+		]);
+		expect(await makeRepo(memories).getTags()).toEqual([
+			{id: 'Beach day', name: 'Beach day', assetCount: 5, coverUrl: 'proxy:2/api/clusters/tags/preview?name=Beach%20day'},
+			{id: 'Sunset', name: 'Sunset', assetCount: 9, coverUrl: 'preview:77:512x512:1'},
+		]);
+	});
+
+	test('a tag opens as a timeline filtered by its name', async () => {
+		const memories = jest.fn().mockResolvedValue([]);
+		await makeRepo(memories).getBuckets({tagId: 'Beach day'});
+		expect(memories).toHaveBeenCalledWith('/days?tags=Beach%20day', {}, 30000);
+	});
+});

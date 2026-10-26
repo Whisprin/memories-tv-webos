@@ -6,14 +6,16 @@ import {groupAssetsByDay} from '../domain/transforms';
 import type {PhotoRepository} from '../domain/PhotoRepository';
 import {MAIN_TIMELINE, type DayGroup, type TimelineScope} from '../domain/types';
 
-const scopeKey = ({albumId, personId, placeId, favorites, archive, order}: TimelineScope): string =>
+const scopeKey = ({albumId, personId, placeId, tagId, favorites, archive, order}: TimelineScope): string =>
 	albumId
 		? `album:${albumId}:${order ?? 'desc'}`
 		: personId
 			? `person:${personId}`
 			: placeId
 				? `place:${placeId}`
-				: favorites
+				: tagId
+					? `tag:${tagId}`
+					: favorites
 					? 'favorites'
 					: archive
 						? 'archive'

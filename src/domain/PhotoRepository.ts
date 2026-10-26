@@ -1,4 +1,4 @@
-import type {Album, AlbumDetails, Person, Place, TimelineAsset, TimelineBucket, TimelineScope} from './types';
+import type {Album, AlbumDetails, Person, Place, Tag, TimelineAsset, TimelineBucket, TimelineScope} from './types';
 
 export interface PhotoRepository {
 	getBuckets(scope?: TimelineScope): Promise<TimelineBucket[]>;
@@ -10,6 +10,8 @@ export interface PhotoRepository {
 	getPeople(): Promise<Person[]>;
 
 	getPlaces(): Promise<Place[]>;
+
+	getTags(): Promise<Tag[]>;
 
 	searchRandomImages(scope: TimelineScope, size: number): Promise<TimelineAsset[]>;
 

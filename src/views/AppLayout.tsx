@@ -9,6 +9,7 @@ import AlbumsPanel from './AlbumsPanel';
 import PeoplePanel from './PeoplePanel';
 import ArchivePanel from './ArchivePanel';
 import PlacesPanel from './PlacesPanel';
+import TagsPanel from './TagsPanel';
 import type {View} from '../types/navigation';
 import css from './AppLayout.module.less';
 
@@ -77,6 +78,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 				{activeView === 'places' && (
 					<div className={css.panelActive}>
 						<PlacesPanel contentWidth={contentWidth} />
+					</div>
+				)}
+				{activeView === 'tags' && (
+					<div className={css.panelActive}>
+						<TagsPanel contentWidth={contentWidth} />
 					</div>
 				)}
 			</ViewContainer>
