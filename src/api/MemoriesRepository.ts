@@ -144,6 +144,7 @@ export class MemoriesRepository implements PhotoRepository {
 		if (scope.personId) return `?${this.faceBackend}=${encodeURIComponent(scope.personId)}`;
 		if (scope.placeId) return `?places=${encodeURIComponent(scope.placeId)}`;
 		if (scope.favorites) return '?fav=1';
+		if (scope.archive) return '?archive=1';
 		return '';
 	}
 

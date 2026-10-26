@@ -218,3 +218,11 @@ describe('favourites', () => {
 		expect(memories).toHaveBeenCalledWith('/days?fav=1', {}, 30000);
 	});
 });
+
+describe('archive', () => {
+	test('the archive timeline uses the archive filter', async () => {
+		const memories = jest.fn().mockResolvedValue([]);
+		await makeRepo(memories).getBuckets({archive: true});
+		expect(memories).toHaveBeenCalledWith('/days?archive=1', {}, 30000);
+	});
+});

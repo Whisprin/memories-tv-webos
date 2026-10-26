@@ -7,6 +7,7 @@ import MainPanel from './MainPanel';
 import FavoritesPanel from './FavoritesPanel';
 import AlbumsPanel from './AlbumsPanel';
 import PeoplePanel from './PeoplePanel';
+import ArchivePanel from './ArchivePanel';
 import PlacesPanel from './PlacesPanel';
 import type {View} from '../types/navigation';
 import css from './AppLayout.module.less';
@@ -66,6 +67,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 				{activeView === 'people' && (
 					<div className={css.panelActive}>
 						<PeoplePanel contentWidth={contentWidth} />
+					</div>
+				)}
+				{activeView === 'archive' && (
+					<div className={css.panelActive}>
+						<ArchivePanel contentWidth={contentWidth} />
 					</div>
 				)}
 				{activeView === 'places' && (

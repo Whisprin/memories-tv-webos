@@ -44,6 +44,8 @@ export interface TimelineScope {
 	placeId?: string;
 	// only photos and videos marked as favourite in Nextcloud
 	favorites?: boolean;
+	// only archived photos and videos (hidden from the main timeline)
+	archive?: boolean;
 	order?: AssetOrder;
 }
 
