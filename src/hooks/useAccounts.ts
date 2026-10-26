@@ -17,7 +17,7 @@ import {
 	type AccountsStore,
 } from '../utils/accountsStore';
 import {randomId} from '../utils/uuid';
-import {makeAuthErrorMessage} from './_authHelpers';
+import {makeAuthErrorMessage, makeConnectErrorMessage} from './_authHelpers';
 
 const credentialsOf = (a: Account): NextcloudCredentials => ({baseUrl: a.baseUrl, loginName: a.loginName, appPassword: a.appPassword});
 
@@ -47,6 +47,9 @@ export const useAccounts = () => {
 	const [repository, setRepository] = useState<PhotoRepository | null>(null);
 	const [isValidating, setIsValidating] = useState<boolean>(() => resolveActiveId(getInitial()) !== null);
 	const [validationError, setValidationError] = useState('');
+	// The active account couldn't connect (offline, server down): shown with Try again, unlike a
+	// rejected sign-in, which opens Accounts.
+	const [connectionError, setConnectionError] = useState('');
 	const repositoryRef = useRef<MemoriesRepository | null>(null);
 
 	const persist = useCallback((next: AccountsStore) => {
@@ -74,6 +77,7 @@ export const useAccounts = () => {
 		}
 		setIsValidating(true);
 		setValidationError('');
+		setConnectionError('');
 		try {
 			const user = await getUser(credentialsOf(account));
 			if (user.displayName !== account.displayName) {
@@ -84,7 +88,8 @@ export const useAccounts = () => {
 		} catch (error) {
 			console.error('[useAccounts] validation failed', error);
 			// A 401 means the app password was revoked (Nextcloud → Settings → Security).
-			setValidationError(makeAuthErrorMessage(error));
+			if (error instanceof APIError && error.status === 401) setValidationError(makeAuthErrorMessage(error));
+			else setConnectionError(makeConnectErrorMessage(error));
 			installRepository(null);
 			setActiveAccountId(id);
 		} finally {
@@ -156,6 +161,10 @@ export const useAccounts = () => {
 		[activate, persist, store],
 	);
 
+	const retryConnection = useCallback(() => {
+		void activate(activeAccountId);
+	}, [activate, activeAccountId]);
+
 	const setAsDefault = useCallback(
 		(id: string | null) => {
 			persist(setDefaultInStore(store, id));
@@ -171,9 +180,11 @@ export const useAccounts = () => {
 			repository,
 			isValidating,
 			validationError,
+			connectionError,
 			addAccount,
 			removeAccount,
 			switchTo,
+			retryConnection,
 			setAsDefault,
 		}),
 		[
@@ -182,9 +193,11 @@ export const useAccounts = () => {
 			repository,
 			isValidating,
 			validationError,
+			connectionError,
 			addAccount,
 			removeAccount,
 			switchTo,
+			retryConnection,
 			setAsDefault,
 		],
 	);

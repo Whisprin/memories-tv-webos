@@ -1,0 +1,38 @@
+@import '../styles/_theme.less';
+
+.screen {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100vh;
+	padding: 0 160px;
+	background: linear-gradient(180deg, @bg-top 0%, @bg-bottom 100%);
+	text-align: center;
+}
+
+.title {
+	margin: 0 0 16px;
+	font-size: var(--font-display);
+	font-weight: 600;
+	color: @text;
+}
+
+.server {
+	margin: 0 0 40px;
+	font-size: var(--font-caption);
+	color: @text-subtle;
+}
+
+.message {
+	max-width: 1200px;
+	margin: 0 0 56px;
+	font-size: var(--font-body);
+	line-height: 1.5;
+	color: @text-muted;
+}
+
+.actions {
+	display: flex;
+	gap: 24px;
+}

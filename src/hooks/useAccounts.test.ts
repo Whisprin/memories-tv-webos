@@ -69,6 +69,21 @@ describe('useAccounts initial state', () => {
 		expect(result.current.repository).toBeNull();
 		expect(result.current.activeAccountId).toBe('a');
 		expect(result.current.validationError).toMatch(/sign in again/i);
+		expect(result.current.connectionError).toBe('');
+	});
+
+	test('reports an unreachable server as a connection error, and connects on retry', async () => {
+		mockGetUser.mockRejectedValueOnce(new APIError('Network error: Failed to fetch'));
+		seed([account('a', 1)]);
+		const {result} = renderHook(() => useAccounts());
+		await waitFor(() => expect(result.current.isValidating).toBe(false));
+		expect(result.current.repository).toBeNull();
+		expect(result.current.validationError).toBe('');
+		expect(result.current.connectionError).toMatch(/can't reach your nextcloud server/i);
+
+		act(() => result.current.retryConnection());
+		await waitFor(() => expect(result.current.repository).not.toBeNull());
+		expect(result.current.connectionError).toBe('');
 	});
 });
 

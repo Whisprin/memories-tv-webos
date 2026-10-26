@@ -17,6 +17,7 @@ export interface NextcloudCredentials {
 }
 
 const REQUEST_TIMEOUT_MS = 15000;
+export const TIMEOUT_REASON = 'The server took too long to answer';
 
 // "cloud.example.com/" → "https://cloud.example.com"
 // "https://example.com/nextcloud/index.php/apps/memories/" → "https://example.com/nextcloud"
@@ -56,7 +57,7 @@ export async function request(url: string, options: RequestInit = {}, timeoutMs 
 		return await fetch(url, {...options, signal: controller.signal});
 	} catch (error) {
 		if (outer?.aborted) throw error; // caller cancelled: let it propagate as an abort
-		const reason = controller.signal.aborted ? 'The server took too long to answer' : error instanceof Error ? error.message : 'Unknown error';
+		const reason = controller.signal.aborted ? TIMEOUT_REASON : error instanceof Error ? error.message : 'Unknown error';
 		throw new APIError(`Network error: ${reason}`);
 	} finally {
 		clearTimeout(timer);

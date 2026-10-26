@@ -8,7 +8,13 @@ const MainPanel: React.FC<RoutePanelProps> = ({contentWidth}) => {
 	const {timeline, isLoading, isError, error} = useTimeline();
 
 	return (
-		<QueryStateView isLoading={isLoading} error={isError ? error : null}>
+		<QueryStateView
+			isLoading={isLoading}
+			error={isError ? error : null}
+			isEmpty={timeline.allBuckets.length === 0}
+			loadingText="Loading your timeline…"
+			emptyText="Your timeline is empty. Memories shows the photos and videos in the timeline folders chosen in its settings in Nextcloud."
+		>
 			<TimelineGrid contentWidth={contentWidth} timeline={timeline} />
 		</QueryStateView>
 	);

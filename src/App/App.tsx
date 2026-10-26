@@ -8,6 +8,7 @@ import {RepositoryProvider} from '../domain/RepositoryContext';
 import {APIError} from '../api/client';
 import AppLayout from '../views/AppLayout';
 import {AccountPanel} from '../views/AccountPanel/AccountPanel';
+import {ConnectionErrorScreen} from '../views/ConnectionErrorScreen';
 import {deriveInitial, pickGradient} from '../utils/accountVisual';
 import type {AuthFormPayload, AuthSubmitResult} from '../components/AuthForm/AuthForm';
 
@@ -24,9 +25,11 @@ const AppBase: React.FC = () => {
 		repository,
 		isValidating,
 		validationError,
+		connectionError,
 		addAccount,
 		removeAccount,
 		switchTo,
+		retryConnection,
 		setAsDefault,
 	} = useAccounts();
 
@@ -96,12 +99,19 @@ const AppBase: React.FC = () => {
 	// Branch 2: accounts exist but no repository yet
 	if (isValidating && !repository && !overlayOpen) {
 		return (
-			<div className={css.boot}>Loading…</div>
+			<div className={css.boot}>Connecting to Nextcloud…</div>
+		);
+	}
+
+	// The server or the network is down: offer to try again rather than sending the user to Accounts.
+	if (!repository && connectionError && activeAccount && !overlayOpen) {
+		return (
+			<ConnectionErrorScreen server={activeAccount.baseUrl} message={connectionError} onRetry={retryConnection} onOpenAccounts={openOverlay} />
 		);
 	}
 
 	if (!repository) {
-		// 401 on boot or validation failed — force account switch/re-auth
+		// 401 on boot — force account switch/re-auth. Also Accounts opened from the connection error screen.
 		return (
 			<div className={css.app}>
 				{validationError && (
@@ -117,6 +127,7 @@ const AppBase: React.FC = () => {
 						onSetDefault={setAsDefault}
 						onRemove={removeAccount}
 						onAddAccount={handleAddAccount}
+						onCloseOverlay={connectionError ? closeOverlay : undefined}
 					/>
 				</Panels>
 			</div>
