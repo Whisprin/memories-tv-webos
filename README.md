@@ -103,6 +103,8 @@ make inspect       # open the Web Inspector for the app on the TV
 
 In a desktop browser the timeline loads, but images and videos don't: they go through the helper service, which only runs on the TV (see below).
 
+After changing the app icon (`tools/make_icon.py`), restart the TV (unplug it for about a minute): webOS caches launcher icons, and neither reinstalling nor a new version refreshes them.
+
 ### Architecture
 
 A layered React app built with [Enact](https://enactjs.com/) and [Sandstone](https://enactjs.com/docs/modules/sandstone/):
