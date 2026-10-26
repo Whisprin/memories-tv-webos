@@ -1,4 +1,4 @@
-import type {Album, AlbumDetails, Person, Place, Tag, TimelineAsset, TimelineBucket, TimelineScope} from './types';
+import type {Album, AlbumDetails, Folder, Person, Place, Tag, TimelineAsset, TimelineBucket, TimelineScope} from './types';
 
 export interface PhotoRepository {
 	getBuckets(scope?: TimelineScope): Promise<TimelineBucket[]>;
@@ -12,6 +12,10 @@ export interface PhotoRepository {
 	getPlaces(): Promise<Place[]>;
 
 	getTags(): Promise<Tag[]>;
+
+	// Memories' folders root (its Folders setting), and the subfolders of a folder.
+	getFolderRoot(): Promise<string>;
+	getSubfolders(path: string): Promise<Folder[]>;
 
 	searchRandomImages(scope: TimelineScope, size: number): Promise<TimelineAsset[]>;
 

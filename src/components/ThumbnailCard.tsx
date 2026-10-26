@@ -9,17 +9,19 @@ interface ThumbnailCardProps {
 	secondaryLine?: React.ReactNode;
 	onClick: () => void;
 	spotlightId?: string;
+	// Sandstone icon shown when there is no thumbnail
+	placeholderIcon?: string;
 }
 
 /** Square poster card with its caption below, focusable via D-pad. */
-export const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({thumbnailUrl, title, secondaryLine, onClick, spotlightId}) => (
+export const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({thumbnailUrl, title, secondaryLine, onClick, spotlightId, placeholderIcon = 'picture'}) => (
 	<SpottableDiv className={css.card} onClick={onClick} spotlightId={spotlightId}>
 		<div className={css.cover}>
 			{thumbnailUrl ? (
 				<img src={thumbnailUrl} alt="" className={css.thumbnail} loading="lazy" />
 			) : (
 				<Icon size="large" className={css.placeholderIcon}>
-					picture
+					{placeholderIcon}
 				</Icon>
 			)}
 		</div>

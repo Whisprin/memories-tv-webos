@@ -255,3 +255,35 @@ describe('tags', () => {
 		expect(memories).toHaveBeenCalledWith('/days?tags=Beach%20day', {}, 30000);
 	});
 });
+
+describe('folders', () => {
+	const reply = (config: object, sub: object[] = []) =>
+		jest.fn((path: string) => Promise.resolve(path === '/config' ? config : path.startsWith('/folders/sub') ? sub : []));
+
+	test('the folder root is the Memories folders path, or / when unset', async () => {
+		expect(await makeRepo(reply({})).getFolderRoot()).toBe('/');
+		expect(await makeRepo(reply({folders_path: 'Photos/'})).getFolderRoot()).toBe('/Photos/');
+	});
+
+	test('lists subfolders with their full path and the first preview as cover', async () => {
+		const memories = reply({}, [
+			{fileid: 10, name: '2024', previews: [{fileid: 55}, {fileid: 56}]},
+			{fileid: 11, name: 'Empty', previews: []},
+			{fileid: 12, name: 'Old'},
+		]);
+		expect(await makeRepo(memories).getSubfolders('/Photos/')).toEqual([
+			{path: '/Photos/2024', name: '2024', coverUrl: 'preview:55:512x512:1'},
+			{path: '/Photos/Empty', name: 'Empty', coverUrl: null},
+			{path: '/Photos/Old', name: 'Old', coverUrl: null},
+		]);
+		expect(memories).toHaveBeenCalledWith('/folders/sub?folder=%2FPhotos%2F');
+	});
+
+	test('a folder opens as a timeline, optionally including subfolders', async () => {
+		const memories = jest.fn().mockResolvedValue([]);
+		await makeRepo(memories).getBuckets({folder: '/Photos'});
+		expect(memories).toHaveBeenCalledWith('/days?folder=%2FPhotos', {}, 30000);
+		await makeRepo(memories).getBuckets({folder: '/Photos', recursive: true});
+		expect(memories).toHaveBeenCalledWith('/days?folder=%2FPhotos&recursive=1', {}, 30000);
+	});
+});

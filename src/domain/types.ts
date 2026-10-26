@@ -44,6 +44,10 @@ export interface TimelineScope {
 	placeId?: string;
 	// tag name
 	tagId?: string;
+	// folder path below the user's Nextcloud root, e.g. '/Photos/2026'
+	folder?: string;
+	// with folder: include subfolders
+	recursive?: boolean;
 	// only photos and videos marked as favourite in Nextcloud
 	favorites?: boolean;
 	// only archived photos and videos (hidden from the main timeline)
@@ -64,6 +68,14 @@ export interface Collection {
 
 export type Place = Collection;
 export type Tag = Collection;
+
+export interface Folder {
+	// e.g. '/Photos/2026'
+	path: string;
+	name: string;
+	// a photo from inside the folder, ready for <img src>; null for folders without photos
+	coverUrl: string | null;
+}
 
 export interface Person {
 	id: string;

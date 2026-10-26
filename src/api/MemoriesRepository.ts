@@ -1,6 +1,6 @@
 import {APIError, NextcloudClient} from './client';
 import type {PhotoRepository} from '../domain/PhotoRepository';
-import {MAIN_TIMELINE, type Album, type AlbumDetails, type Collection, type Person, type Place, type Tag, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
+import {MAIN_TIMELINE, type Album, type AlbumDetails, type Collection, type Folder, type Person, type Place, type Tag, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
 
 // Memories (https://memories.gallery) groups the library by day: GET /api/days returns
 // [{dayid, count}] with dayid = days since 1970-01-01 in the photos' local time, newest
@@ -55,11 +55,23 @@ interface MemoriesCluster {
 	cover?: number | null;
 }
 
+// GET /api/folders/sub?folder=<path>: the subfolders of a folder, sorted by name.
+interface MemoriesFolder {
+	fileid: number;
+	name: string;
+	// a few photos from inside the folder
+	previews?: Array<{fileid: number}>;
+}
+
+const joinFolder = (base: string, name: string): string => `${base}/${name}`.replace(/\/\/+/g, '/');
+
 // The parts of GET /api/config this app uses.
 interface MemoriesConfig {
 	recognize_enabled?: boolean;
 	facerecognition_enabled?: boolean;
 	systemtags_enabled?: boolean;
+	// the user's Folders root in Memories, '/' by default
+	folders_path?: string;
 }
 
 type FaceBackend = 'recognize' | 'facerecognition';
@@ -146,6 +158,7 @@ export class MemoriesRepository implements PhotoRepository {
 		if (scope.personId) return `?${this.faceBackend}=${encodeURIComponent(scope.personId)}`;
 		if (scope.placeId) return `?places=${encodeURIComponent(scope.placeId)}`;
 		if (scope.tagId) return `?tags=${encodeURIComponent(scope.tagId)}`;
+		if (scope.folder) return `?folder=${encodeURIComponent(scope.folder)}${scope.recursive ? '&recursive=1' : ''}`;
 		if (scope.favorites) return '?fav=1';
 		if (scope.archive) return '?archive=1';
 		return '';
@@ -261,6 +274,20 @@ export class MemoriesRepository implements PhotoRepository {
 		const config = await this.loadConfig();
 		if (config.systemtags_enabled === false) return [];
 		return this.loadCollections('tags', (c) => c.name);
+	}
+
+	public async getFolderRoot(): Promise<string> {
+		const config = await this.loadConfig();
+		return joinFolder('/', config.folders_path || '/');
+	}
+
+	public async getSubfolders(path: string): Promise<Folder[]> {
+		const folders = await this.client.memories<MemoriesFolder[]>(`/folders/sub?folder=${encodeURIComponent(path)}`);
+		return folders.map((f) => ({
+			path: joinFolder(path, f.name),
+			name: f.name,
+			coverUrl: f.previews?.[0] ? this.thumbnailUrl(String(f.previews[0].fileid)) : null,
+		}));
 	}
 
 	// Memories has no random endpoint: sample random days and pick images from them.
