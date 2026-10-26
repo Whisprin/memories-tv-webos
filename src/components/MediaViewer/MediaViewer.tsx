@@ -30,6 +30,9 @@ const ViewerContainer = createSpotlightContainer({enterTo: 'last-focused'});
 const swallowKey = () => {};
 const focusStage = () => forceFocus(STAGE_SPOTLIGHT_ID);
 const focusActionBar = () => forceFocus(ACTION_BAR_SPOTLIGHT_ID);
+// How long a video's overlay (date, position, arrows, close) stays up when it opens; the same
+// delay photos use before their controls fade.
+const VIDEO_OVERLAY_INTRO_MS = 4000;
 
 export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, totalCount, currentIndex, position, onClose, onNavigate, onStartSlideshow}) => {
 	const repository = useRepository();
@@ -49,8 +52,9 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 	const [rotation, rotate] = useAssetRotation(isVideo ? undefined : asset?.id);
 	const controlsRef = useRef<HTMLDivElement>(null);
 
-	// Auto-hide is for still images only. Video keeps its always-visible MediaControls and
-	// relies on Sandstone VideoPlayer's own auto-hide (OK/Select is play/pause there).
+	// Auto-hide here is for still images. Videos can't use it: while hidden it swallows OK, which
+	// Sandstone VideoPlayer needs for play/pause and its transport bar. A video's overlay instead
+	// follows that bar (see videoOverlayVisible below).
 	const {visible: controlsVisible, show: showControls, hide: hideControls} = useAutoHideControls({enabled: !isVideo, controlsRef});
 	const inActionBar = !isVideo && controlsVisible && actionBarFocused;
 
@@ -74,13 +78,24 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 	// photo), which would leave the state stuck on "visible". State adjustment during
 	// render, not in an effect (`react-hooks/set-state-in-effect`, Enact CI strict).
 	const [prevAssetId, setPrevAssetId] = useState(asset?.id);
+	const [videoIntro, setVideoIntro] = useState(true);
 	if (asset?.id !== prevAssetId) {
 		setPrevAssetId(asset?.id);
 		setVideoControlsVisible(false);
+		setVideoIntro(true);
 		// The bar may unmount (photo → video) without a blur reaching us.
 		setActionBarFocused(false);
 	}
 	const videoControlsOpen = isVideo && videoControlsVisible;
+
+	// A video's overlay shows briefly when it opens, then only while Sandstone's transport bar
+	// is up (OK, Down or the pointer bring it back), so it hides during playback like photos do.
+	useEffect(() => {
+		if (!isVideo) return undefined;
+		const timer = window.setTimeout(() => setVideoIntro(false), VIDEO_OVERLAY_INTRO_MS);
+		return () => window.clearTimeout(timer);
+	}, [isVideo, asset?.id]);
+	const videoOverlayVisible = videoControlsOpen || videoIntro;
 
 	// Back closes the transport bar if open, the viewer otherwise. Our Back bridge
 	// (capture + stopImmediatePropagation) preempts Sandstone's Cancelable, so the
@@ -149,7 +164,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 				asset={asset}
 				position={position}
 				isVideo={isVideo}
-				controlsVisible={controlsVisible}
+				controlsVisible={isVideo ? videoOverlayVisible : controlsVisible}
 				canGoPrev={currentIndex > 0}
 				canGoNext={currentIndex < totalCount - 1}
 				onPrev={handlePrev}
