@@ -22,7 +22,8 @@ var Service = require('webos-service');
 var http = require('http');
 var https = require('https');
 var url = require('url');
-var crypto = require('crypto');
+var nodeCrypto = require('crypto');
+var Buffer = require('buffer').Buffer;
 
 var SERVICE_ID = 'com.wisp.memoriestv.service';
 var CLIENT_NAME = 'Memories TV'; // shown in Nextcloud → Settings → Security
@@ -282,7 +283,7 @@ service.register('mediaProxy', function (message) {
     return;
   }
   proxy.auth = { server: String(p.server).replace(/\/+$/, ''), header: 'Basic ' + b64(p.loginName + ':' + p.appPassword) };
-  if (!proxy.token) proxy.token = crypto.randomBytes(16).toString('hex');
+  if (!proxy.token) proxy.token = nodeCrypto.randomBytes(16).toString('hex');
   startProxy(function (err) {
     if (err) {
       message.respond({ returnValue: false, errorCode: 'listen_failed', errorText: 'Could not listen on 127.0.0.1: ' + err.message });

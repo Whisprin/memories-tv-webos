@@ -1,10 +1,12 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import Button from '@enact/sandstone/Button';
-import TabLayout, {Tab} from '@enact/sandstone/TabLayout';
 import {ErrorMessage} from '../ErrorMessage';
-import {FieldRow} from '../FieldRow/FieldRow';
+import {QrCode} from '../QrCode/QrCode';
 import {UrlInput} from '../UrlInput/UrlInput';
-import {AuthMethod, type AuthSubmitResult, type AuthFormPayload} from '../../api/types';
+import {normalizeServerUrl} from '../../api/client';
+import {describeMemories, pollLoginFlow, startLoginFlow} from '../../api/nextcloudAuth';
+import {makeAuthErrorMessage} from '../../hooks/_authHelpers';
+import type {AuthSubmitResult, AuthFormPayload} from '../../api/types';
 import css from './AuthForm.module.less';
 
 // Canonical auth-attempt types live in api/types; re-exported here for the form's consumers.
@@ -16,6 +18,31 @@ interface AuthFormProps {
 	onBack?: () => void;
 }
 
+// Login Flow v2 tokens expire after 20 minutes.
+const FLOW_TIMEOUT_MS = 20 * 60 * 1000;
+const POLL_INTERVAL_MS = 2000;
+
+interface Flow {
+	baseUrl: string;
+	login: string;
+	token: string;
+	expiresAt: number;
+}
+
+const hostOf = (url: string): string => {
+	try {
+		return new URL(url).host;
+	} catch {
+		return '';
+	}
+};
+
+const formatRemaining = (ms: number): string => {
+	const total = Math.max(0, Math.round(ms / 1000));
+	const s = total % 60;
+	return `${Math.floor(total / 60)}:${s < 10 ? '0' : ''}${s}`;
+};
+
 const LabeledField: React.FC<{label: string; children: React.ReactNode}> = ({label, children}) => (
 	<div className={css.field}>
 		<label className={css.label}>{label}</label>
@@ -23,117 +50,157 @@ const LabeledField: React.FC<{label: string; children: React.ReactNode}> = ({lab
 	</div>
 );
 
+// Sign-in in two steps: the server address, then a QR code for Nextcloud Login Flow v2.
+// The user approves on their phone, so no password is typed on the TV.
 export const AuthForm: React.FC<AuthFormProps> = ({initialUrl, onSubmit, onBack}) => {
-	const [url, setUrl] = useState(initialUrl);
-	const [email, setEmail] = useState('');
-	const [password, setPassword] = useState('');
-	const [apiKey, setApiKey] = useState('');
+	const [url, setUrl] = useState(initialUrl || 'https://');
 	const [error, setError] = useState('');
-	const [submitting, setSubmitting] = useState(false);
-	const [tabIndex, setTabIndex] = useState(0);
+	const [busy, setBusy] = useState(false);
+	const [flow, setFlow] = useState<Flow | null>(null);
+	const [expired, setExpired] = useState(false);
+	const [remaining, setRemaining] = useState(FLOW_TIMEOUT_MS);
+	const submittingRef = useRef(false);
 
-	const submit = useCallback(
-		async (payload: AuthFormPayload) => {
-			setError('');
-			setSubmitting(true);
-			try {
-				const result = await onSubmit(payload);
-				if (!result.success) setError(result.errorMessage);
-			} finally {
-				setSubmitting(false);
-			}
-		},
-		[onSubmit],
-	);
-
-	const submitCreds = useCallback(() => {
-		if (!url || !email || !password) {
-			setError('Please fill in all fields');
-			return;
+	const start = useCallback(async (baseUrl: string) => {
+		setError('');
+		setBusy(true);
+		setExpired(false);
+		try {
+			const started = await startLoginFlow(baseUrl);
+			setFlow({baseUrl, login: started.login, token: started.poll.token, expiresAt: Date.now() + FLOW_TIMEOUT_MS});
+			setRemaining(FLOW_TIMEOUT_MS);
+		} catch (e) {
+			console.error('[AuthForm] could not start the login flow', e);
+			setError(makeAuthErrorMessage(e));
+		} finally {
+			setBusy(false);
 		}
-		void submit({method: AuthMethod.USER_CREDENTIALS, baseUrl: url, email, password});
-	}, [url, email, password, submit]);
-
-	const submitApi = useCallback(() => {
-		if (!url || !apiKey) {
-			setError('Please enter both URL and API key');
-			return;
-		}
-		void submit({method: AuthMethod.API_KEY, baseUrl: url, apiKey});
-	}, [url, apiKey, submit]);
-
-	const handleTabSelect = useCallback((event: {index?: number}) => {
-		if (typeof event.index === 'number') setTabIndex(event.index);
 	}, []);
 
-	const tabs = [];
-	tabs.push(
-		<Tab title="Email" icon="profile" tabKey="creds" key="creds">
-			<div className={css.tabContent}>
-				<LabeledField label="Server URL">
-					<UrlInput
-						value={url}
-						onChange={setUrl}
-						disabled={submitting}
-						placeholder="http(s)://…"
-						autoFocus
-					/>
-				</LabeledField>
-				<LabeledField label="Email">
-					<FieldRow
-						value={email}
-						onChange={setEmail}
-						placeholder="Email"
-						disabled={submitting}
-						clearLabel="Clear Email"
-					/>
-				</LabeledField>
-				<LabeledField label="Password">
-					<FieldRow
-						value={password}
-						onChange={setPassword}
-						type="password"
-						placeholder="Password"
-						disabled={submitting}
-						clearLabel="Clear Password"
-					/>
-				</LabeledField>
-				<div className={css.actions}>
-					<Button onClick={submitCreds} disabled={submitting} backgroundOpacity="opaque">
-						{submitting ? 'Connecting…' : 'Connect'}
-					</Button>
+	const handleContinue = useCallback(async () => {
+		let baseUrl: string;
+		try {
+			baseUrl = normalizeServerUrl(url);
+		} catch (e) {
+			setError(e instanceof Error ? e.message : String(e));
+			return;
+		}
+		setUrl(baseUrl);
+		setError('');
+		setBusy(true);
+		try {
+			await describeMemories(baseUrl);
+		} catch (e) {
+			console.error('[AuthForm] server check failed', e);
+			setError(makeAuthErrorMessage(e));
+			setBusy(false);
+			return;
+		}
+		await start(baseUrl);
+	}, [url, start]);
+
+	const handleCancel = useCallback(() => {
+		setFlow(null);
+		setExpired(false);
+		setError('');
+	}, []);
+
+	const handleRestart = useCallback(() => {
+		if (flow) void start(flow.baseUrl);
+	}, [flow, start]);
+
+	// Poll until the user approves, the code expires, or the form leaves the QR step.
+	useEffect(() => {
+		if (!flow || expired) return undefined;
+		const controller = new AbortController();
+		let timer: ReturnType<typeof setTimeout> | undefined;
+
+		const poll = async () => {
+			const left = flow.expiresAt - Date.now();
+			setRemaining(left);
+			if (left <= 0) {
+				setExpired(true);
+				return;
+			}
+			try {
+				const result = await pollLoginFlow(flow.baseUrl, flow.token, controller.signal);
+				if (controller.signal.aborted) return;
+				if (result) {
+					if (submittingRef.current) return;
+					submittingRef.current = true;
+					setBusy(true);
+					try {
+						const outcome = await onSubmit({baseUrl: flow.baseUrl, loginName: result.loginName, appPassword: result.appPassword});
+						if (!outcome.success) {
+							setError(outcome.errorMessage);
+							setFlow(null);
+						}
+					} finally {
+						submittingRef.current = false;
+						setBusy(false);
+					}
+					return;
+				}
+			} catch (e) {
+				if (controller.signal.aborted) return;
+				// Keep polling through a dropped connection; show why it's waiting.
+				setError(makeAuthErrorMessage(e));
+			}
+			timer = setTimeout(() => void poll(), POLL_INTERVAL_MS);
+		};
+
+		timer = setTimeout(() => void poll(), POLL_INTERVAL_MS);
+		return () => {
+			controller.abort();
+			if (timer) clearTimeout(timer);
+		};
+	}, [flow, expired, onSubmit]);
+
+	if (flow) {
+		const loginHost = hostOf(flow.login);
+		const serverHost = hostOf(flow.baseUrl);
+		return (
+			<div className={css.root}>
+				<div className={css.qrLayout}>
+					<div className={css.qrBox}>{expired ? null : <QrCode value={flow.login} className={css.qr} />}</div>
+					<div className={css.qrSteps}>
+						<h2 className={css.qrTitle}>Sign in with your phone</h2>
+						<ol className={css.steps}>
+							<li>Scan the code with your phone&apos;s camera.</li>
+							<li>Sign in to Nextcloud and choose Grant access.</li>
+							<li>This screen continues by itself.</li>
+						</ol>
+						<div className={css.label}>Or open this address on any device</div>
+						<div className={css.loginUrl}>{flow.login}</div>
+						{loginHost && loginHost !== serverHost ? (
+							<p className={css.warning}>
+								This link points to {loginHost}, not {serverHost}. If your phone can&apos;t open it, check
+								overwrite.cli.url in Nextcloud&apos;s config.php.
+							</p>
+						) : null}
+						<p className={css.status}>
+							{busy
+								? 'Signing in…'
+								: expired
+									? 'The code expired.'
+									: `Waiting for approval on your phone (code expires in ${formatRemaining(remaining)})`}
+						</p>
+						<div className={css.actions}>
+							{expired ? (
+								<Button onClick={handleRestart} disabled={busy} backgroundOpacity="opaque" autoFocus>
+									New code
+								</Button>
+							) : null}
+							<Button onClick={handleCancel} disabled={busy} backgroundOpacity="opaque" autoFocus={!expired}>
+								Cancel
+							</Button>
+						</div>
+						<ErrorMessage message={error} className={css.error} />
+					</div>
 				</div>
 			</div>
-		</Tab>,
-	);
-	tabs.push(
-		<Tab title="API Key" icon="lock" tabKey="apikey" key="apikey">
-			<div className={css.tabContent}>
-				<LabeledField label="Server URL">
-					<UrlInput
-						value={url}
-						onChange={setUrl}
-						disabled={submitting}
-						placeholder="http(s)://…"
-					/>
-				</LabeledField>
-				<LabeledField label="API Key">
-					<FieldRow
-						value={apiKey}
-						onChange={setApiKey}
-						placeholder="API Key"
-						disabled={submitting}
-						clearLabel="Clear API Key"
-					/>
-				</LabeledField>
-				<div className={css.actions}>
-					<Button onClick={submitApi} disabled={submitting} backgroundOpacity="opaque">
-						{submitting ? 'Connecting…' : 'Connect'}
-					</Button>
-				</div>
-			</div>
-		</Tab>,
-	);
+		);
+	}
 
 	return (
 		<div className={css.root}>
@@ -144,9 +211,17 @@ export const AuthForm: React.FC<AuthFormProps> = ({initialUrl, onSubmit, onBack}
 			) : null}
 
 			<div className={css.form}>
-				<TabLayout className={css.layout} orientation="vertical" index={tabIndex} onSelect={handleTabSelect}>
-					{tabs}
-				</TabLayout>
+				<div className={css.tabContent}>
+					<h2 className={css.qrTitle}>Add a Nextcloud account</h2>
+					<LabeledField label="Nextcloud address">
+						<UrlInput value={url} onChange={setUrl} disabled={busy} placeholder="https://cloud.example.com" autoFocus />
+					</LabeledField>
+					<div className={css.actions}>
+						<Button onClick={handleContinue} disabled={busy} backgroundOpacity="opaque">
+							{busy ? 'Checking…' : 'Continue'}
+						</Button>
+					</div>
+				</div>
 
 				<ErrorMessage message={error} className={css.error} />
 			</div>

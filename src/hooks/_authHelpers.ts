@@ -1,15 +1,14 @@
 import {APIError} from '../api/client';
-import {AuthMethod} from '../api/types';
 
 const NETWORK_ERROR_MESSAGE =
-	"Couldn't reach the server. Verify the URL and that your Immich server allows requests from this app (CORS).";
+	"Couldn't reach the server. Check the address, that the TV is online, and that the server uses a publicly trusted HTTPS certificate.";
 
-export function makeAuthErrorMessage(error: unknown, method: AuthMethod): string {
+export function makeAuthErrorMessage(error: unknown): string {
 	if (error instanceof APIError) {
-		if (error.status === 401) {
-			return method === AuthMethod.API_KEY ? 'Invalid API key' : 'Invalid email or password';
-		}
+		if (error.status === 401) return 'The server rejected the sign-in. Please sign in again.';
+		if (error.status === 404) return 'Nextcloud Memories was not found at this address. Check the address, including any subfolder.';
 		if (error.status) return `Server returned ${error.status}`;
+		if (!error.message.startsWith('Network error')) return error.message;
 	}
 	return NETWORK_ERROR_MESSAGE;
 }

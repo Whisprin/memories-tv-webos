@@ -1,4 +1,3 @@
-import {AuthMethod} from '../api/types';
 import type {Account} from './accountsStore';
 
 export const GRADIENT_PALETTE: readonly string[] = [
@@ -25,10 +24,7 @@ export const hostFromUrl = (url: string): string => {
 };
 
 export function deriveLabel(account: Account): string {
-	if (account.method === AuthMethod.USER_CREDENTIALS && account.email) {
-		return account.email;
-	}
-	return hostFromUrl(account.baseUrl);
+	return account.displayName || account.loginName || hostFromUrl(account.baseUrl);
 }
 
 export function deriveInitial(account: Account): string {

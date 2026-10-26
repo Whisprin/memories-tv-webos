@@ -3,7 +3,7 @@ import {SpottableDiv} from '../../utils/spotlight';
 import {FieldRow} from '../FieldRow/FieldRow';
 import css from './UrlInput.module.less';
 
-const SHORTCUTS = ['http://', 'https://', '.local', '.com', ':2283', ':30041'] as const;
+const SHORTCUTS = ['https://', 'http://', '.local', '.com', '/nextcloud'] as const;
 
 interface UrlInputProps {
 	value: string;

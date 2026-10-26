@@ -45,13 +45,13 @@ describe('UrlInput', () => {
 	test('chip clicks append their text', () => {
 		const onChange = jest.fn();
 		render(<UrlInput value="http://x" onChange={onChange} />);
-		fireEvent.click(screen.getByText(':2283'));
-		expect(onChange).toHaveBeenCalledWith('http://x:2283');
+		fireEvent.click(screen.getByText('/nextcloud'));
+		expect(onChange).toHaveBeenCalledWith('http://x/nextcloud');
 	});
 
 	test('renders all chip shortcuts', () => {
 		render(<UrlInput value="" onChange={() => {}} />);
-		['http://', 'https://', '.local', '.com', ':2283', ':30041'].forEach(chip => {
+		['https://', 'http://', '.local', '.com', '/nextcloud'].forEach(chip => {
 			expect(screen.getByText(chip)).toBeTruthy();
 		});
 	});

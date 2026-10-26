@@ -1,57 +1,34 @@
-import {AuthMethod} from '../api/types';
-import {randomId} from './uuid';
-
 export interface Account {
 	id: string;
+	// Nextcloud base URL, including any subfolder, without a trailing slash
 	baseUrl: string;
-	method: AuthMethod;
-	email?: string;
-	accessToken?: string;
-	apiKey?: string;
+	loginName: string;
+	// App password from Login Flow v2; revocable under Nextcloud → Settings → Security
+	appPassword: string;
+	// Nextcloud display name, filled in after sign-in
+	displayName?: string;
 	addedAt: number;
 }
 
 export interface AccountsStore {
-	version: 2;
+	version: 1;
 	accounts: Account[];
 	defaultAccountId: string | null;
 	lastActiveAccountId: string | null;
 }
 
-const ACCOUNTS_KEY = 'immich_accounts';
-const LEGACY_KEY = 'immich_auth_config';
+const ACCOUNTS_KEY = 'memoriestv_accounts';
 
 const emptyStore = (): AccountsStore => ({
-	version: 2,
+	version: 1,
 	accounts: [],
 	defaultAccountId: null,
 	lastActiveAccountId: null,
 });
 
-interface LegacyConfig {
-	baseUrl: string;
-	method?: AuthMethod;
-	apiKey?: string;
-	email?: string;
-	accessToken?: string;
-}
-
-const migrateLegacy = (legacy: LegacyConfig): AccountsStore | null => {
-	if (!legacy.baseUrl) return null;
-	let method = legacy.method;
-	if (!method && legacy.apiKey) method = AuthMethod.API_KEY;
-	if (!method) return null;
-	const id = randomId();
-	const account: Account = {
-		id,
-		baseUrl: legacy.baseUrl,
-		method,
-		email: legacy.email,
-		accessToken: legacy.accessToken,
-		apiKey: legacy.apiKey,
-		addedAt: Date.now(),
-	};
-	return {version: 2, accounts: [account], defaultAccountId: id, lastActiveAccountId: id};
+const isAccount = (value: unknown): value is Account => {
+	const a = value as Partial<Account> | null;
+	return !!a && typeof a.id === 'string' && typeof a.baseUrl === 'string' && typeof a.loginName === 'string' && typeof a.appPassword === 'string';
 };
 
 export function readAccountsStore(): AccountsStore {
@@ -59,43 +36,14 @@ export function readAccountsStore(): AccountsStore {
 	if (raw) {
 		try {
 			const parsed = JSON.parse(raw) as Record<string, unknown>;
-			if (parsed && parsed['version'] === 2 && Array.isArray(parsed['accounts'])) {
-				return parsed as unknown as AccountsStore;
+			if (parsed && parsed['version'] === 1 && Array.isArray(parsed['accounts'])) {
+				const store = parsed as unknown as AccountsStore;
+				return {...store, accounts: store.accounts.filter(isAccount)};
 			}
 		} catch (e) {
-			console.error('[accountsStore] failed to parse store, falling back', e);
+			console.error('[accountsStore] failed to parse store, starting empty', e);
 		}
 	}
-
-	const legacyRaw = localStorage.getItem(LEGACY_KEY);
-	if (legacyRaw) {
-		let legacy: LegacyConfig | null = null;
-		try {
-			legacy = JSON.parse(legacyRaw) as LegacyConfig;
-		} catch (e) {
-			console.error('[accountsStore] legacy config is unparseable, discarding', e);
-			localStorage.removeItem(LEGACY_KEY);
-		}
-
-		if (legacy) {
-			const migrated = migrateLegacy(legacy);
-			if (migrated) {
-				try {
-					writeAccountsStore(migrated);
-					localStorage.removeItem(LEGACY_KEY);
-					return migrated;
-				} catch (e) {
-					console.error('[accountsStore] failed to write migrated store, keeping legacy key', e);
-					// Do NOT remove legacy. Return the in-memory migrated store so the session works;
-					// the next boot will retry the migration.
-					return migrated;
-				}
-			}
-			// Valid JSON but no usable account — discard.
-			localStorage.removeItem(LEGACY_KEY);
-		}
-	}
-
 	return emptyStore();
 }
 
@@ -109,6 +57,10 @@ export function addAccountToStore(store: AccountsStore, account: Account): Accou
 		accounts: [...store.accounts, account],
 		lastActiveAccountId: account.id,
 	};
+}
+
+export function updateAccountInStore(store: AccountsStore, id: string, patch: Partial<Omit<Account, 'id'>>): AccountsStore {
+	return {...store, accounts: store.accounts.map((a) => (a.id === id ? {...a, ...patch} : a))};
 }
 
 export function removeAccountFromStore(store: AccountsStore, id: string): AccountsStore {

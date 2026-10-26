@@ -1,0 +1,118 @@
+import {MemoriesRepository, dayIdToDate, photoToAsset, type MediaUrls} from './MemoriesRepository';
+import type {NextcloudClient} from './client';
+
+// 2026-03-01 is day 20513 since 1970-01-01.
+const MAR_1 = 20513;
+const MAR_31 = MAR_1 + 30;
+const APR_2 = MAR_1 + 32;
+
+const media: MediaUrls = {
+	memoriesUrl: (path, shard = 0) => `proxy:${shard}/${path}`,
+	previewUrl: (fileid, x, y, a) => `preview:${fileid}:${x}x${y}:${a}`,
+	stop: jest.fn(),
+};
+
+const makeRepo = (memories: jest.Mock) => new MemoriesRepository({memories} as unknown as NextcloudClient, media);
+
+describe('dayIdToDate', () => {
+	test('converts days since 1970 to an ISO date', () => {
+		expect(dayIdToDate(0)).toBe('1970-01-01');
+		expect(dayIdToDate(MAR_1)).toBe('2026-03-01');
+	});
+});
+
+describe('photoToAsset', () => {
+	test('maps an image', () => {
+		expect(photoToAsset({fileid: 42, dayid: MAR_1, w: 4000, h: 3000, epoch: Date.UTC(2026, 2, 1, 14, 30) / 1000})).toEqual({
+			id: '42',
+			type: 'IMAGE',
+			ratio: 4000 / 3000,
+			localDateTime: '2026-03-01T14:30:00.000Z',
+			durationSeconds: null,
+		});
+	});
+
+	test('maps a video and takes the day from dayid even if epoch disagrees', () => {
+		const asset = photoToAsset({fileid: 7, dayid: MAR_1, isvideo: 1, video_duration: 12, epoch: Date.UTC(2026, 1, 28, 23, 59) / 1000});
+		expect(asset.type).toBe('VIDEO');
+		expect(asset.durationSeconds).toBe(12);
+		expect(asset.localDateTime).toBe('2026-03-01T23:59:00.000Z');
+		expect(asset.ratio).toBe(1);
+	});
+});
+
+describe('MemoriesRepository', () => {
+	test('groups days into month buckets, newest first', async () => {
+		const memories = jest.fn().mockResolvedValue([
+			{dayid: APR_2, count: 3},
+			{dayid: MAR_31, count: 2},
+			{dayid: MAR_1, count: 5},
+		]);
+		const buckets = await makeRepo(memories).getBuckets();
+		expect(memories).toHaveBeenCalledWith('/days', {}, 30000);
+		expect(buckets).toEqual([
+			{timeBucket: '2026-04-01', count: 3},
+			{timeBucket: '2026-03-01', count: 7},
+		]);
+	});
+
+	test('loads a month by fetching its days', async () => {
+		const memories = jest
+			.fn()
+			.mockResolvedValueOnce([
+				{dayid: APR_2, count: 1},
+				{dayid: MAR_31, count: 1},
+				{dayid: MAR_1, count: 1},
+			])
+			.mockResolvedValueOnce([
+				{fileid: 1, dayid: MAR_31},
+				{fileid: 2, dayid: MAR_1, isvideo: 1, video_duration: 5},
+			]);
+		const repo = makeRepo(memories);
+		await repo.getBuckets();
+		const assets = await repo.getBucketAssets('2026-03-01');
+		expect(memories).toHaveBeenLastCalledWith('/days', {method: 'POST', body: JSON.stringify({dayIds: [MAR_31, MAR_1]}), signal: undefined}, 30000);
+		expect(assets.map((a) => a.id)).toEqual(['1', '2']);
+	});
+
+	test('a month with no days needs no request', async () => {
+		const memories = jest.fn().mockResolvedValueOnce([{dayid: MAR_1, count: 1}]);
+		const repo = makeRepo(memories);
+		expect(await repo.getBucketAssets('2025-12-01')).toEqual([]);
+		expect(memories).toHaveBeenCalledTimes(1);
+	});
+
+	test('scopes become Memories filters', async () => {
+		const memories = jest.fn().mockResolvedValue([]);
+		const repo = makeRepo(memories);
+		await repo.getBuckets({albumId: 'alice/Holiday 2026'});
+		expect(memories).toHaveBeenCalledWith('/days?albums=alice%2FHoliday%202026', {}, 30000);
+		await repo.getBuckets({personId: 'alice/12'});
+		expect(memories).toHaveBeenCalledWith('/days?recognize=alice%2F12', {}, 30000);
+	});
+
+	test('random images come from sampled days and exclude videos', async () => {
+		const memories = jest
+			.fn()
+			.mockResolvedValueOnce([{dayid: MAR_1, count: 3}])
+			.mockResolvedValueOnce([
+				{fileid: 1, dayid: MAR_1},
+				{fileid: 2, dayid: MAR_1, isvideo: 1},
+				{fileid: 3, dayid: MAR_1},
+			]);
+		const images = await makeRepo(memories).searchRandomImages({}, 10);
+		expect(images.map((a) => a.id).sort()).toEqual(['1', '3']);
+	});
+
+	test('media goes through the proxy URLs', () => {
+		const repo = makeRepo(jest.fn());
+		expect(repo.thumbnailUrl('42')).toBe('preview:42:512x512:1');
+		expect(repo.previewUrl('42')).toBe('preview:42:1920x1080:1');
+		expect(repo.videoPlaybackUrl('42')).toBe('proxy:42/api/stream/42');
+	});
+
+	test('dispose stops the media proxy', () => {
+		makeRepo(jest.fn()).dispose();
+		expect(media.stop).toHaveBeenCalled();
+	});
+});

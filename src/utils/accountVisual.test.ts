@@ -1,43 +1,37 @@
-import {AuthMethod} from '../api/types';
 import {deriveLabel, deriveInitial, pickGradient, GRADIENT_PALETTE} from './accountVisual';
 import type {Account} from './accountsStore';
 
 const make = (over: Partial<Account>): Account => ({
 	id: 'id',
-	baseUrl: 'http://x',
-	method: AuthMethod.API_KEY,
+	baseUrl: 'https://cloud.home.local',
+	loginName: 'marie',
+	appPassword: 'pw',
 	addedAt: 0,
 	...over,
 });
 
 describe('deriveLabel', () => {
-	test('USER_CREDENTIALS uses email', () => {
-		expect(deriveLabel(make({method: AuthMethod.USER_CREDENTIALS, email: 'marie@example.com'}))).toBe(
-			'marie@example.com',
-		);
+	test('prefers the Nextcloud display name', () => {
+		expect(deriveLabel(make({displayName: 'Marie Curie'}))).toBe('Marie Curie');
 	});
 
-	test('USER_CREDENTIALS falls back to baseUrl host if email missing', () => {
-		expect(deriveLabel(make({method: AuthMethod.USER_CREDENTIALS, baseUrl: 'https://immich.home.local'}))).toBe(
-			'immich.home.local',
-		);
+	test('falls back to the login name', () => {
+		expect(deriveLabel(make({}))).toBe('marie');
 	});
 
-	test('API_KEY uses baseUrl host', () => {
-		expect(deriveLabel(make({method: AuthMethod.API_KEY, baseUrl: 'https://immich.home.local:2283'}))).toBe(
-			'immich.home.local',
-		);
+	test('falls back to the host when there is no name', () => {
+		expect(deriveLabel(make({loginName: '', baseUrl: 'https://cloud.home.local:8443'}))).toBe('cloud.home.local');
 	});
 
-	test('API_KEY tolerates baseUrl without scheme', () => {
-		expect(deriveLabel(make({method: AuthMethod.API_KEY, baseUrl: '192.168.1.42:2283'}))).toBe('192.168.1.42');
+	test('tolerates a baseUrl without scheme', () => {
+		expect(deriveLabel(make({loginName: '', baseUrl: '192.168.1.42:8080'}))).toBe('192.168.1.42');
 	});
 });
 
 describe('deriveInitial', () => {
 	test('uppercases the first visible glyph of the label', () => {
-		expect(deriveInitial(make({method: AuthMethod.USER_CREDENTIALS, email: 'marie@example.com'}))).toBe('M');
-		expect(deriveInitial(make({method: AuthMethod.API_KEY, baseUrl: 'https://immich.home.local'}))).toBe('I');
+		expect(deriveInitial(make({displayName: 'marie curie'}))).toBe('M');
+		expect(deriveInitial(make({loginName: '', baseUrl: 'https://cloud.home.local'}))).toBe('C');
 	});
 });
 

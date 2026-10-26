@@ -6,7 +6,6 @@ import {AuthForm, type AuthFormPayload, type AuthSubmitResult} from '../../compo
 import {createSpotlightContainer} from '../../utils/spotlight';
 import {useWebOSKeys} from '../../hooks/useWebOSKeys';
 import type {Account} from '../../utils/accountsStore';
-import bannerImage from '../../assets/immich-banner.webp';
 import css from './AccountPanel.module.less';
 
 export type AccountPanelMode = 'first-launch' | 'overlay';
@@ -126,9 +125,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({
 		}
 		return (
 			<div className={css.firstLaunch}>
-				<img src={bannerImage} alt="Immich" className={css.banner} />
-				<h2 className={css.welcomeTitle}>Welcome to Immich for TV</h2>
-				<p className={css.welcomeSub}>Add your Immich account to start browsing.</p>
+				<h2 className={css.welcomeTitle}>Welcome to Memories TV</h2>
+				<p className={css.welcomeSub}>Add your Nextcloud account to browse your photos and videos from Memories.</p>
 				<Button autoFocus size="large" icon="plus" onClick={goForm} backgroundOpacity="opaque">
 					Add account
 				</Button>

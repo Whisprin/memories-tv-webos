@@ -1,12 +1,15 @@
-import {useState, useEffect, useCallback, useMemo} from 'react';
-import {APIClient} from '../api/client';
-import {ImmichRepository, validateAuth} from '../api/ImmichRepository';
-import {AuthMethod, type ApiKeyConfig, type UserCredentialsConfig, type AuthSubmitResult, type AuthFormPayload} from '../api/types';
+import {useState, useEffect, useCallback, useMemo, useRef} from 'react';
+import {APIError, NextcloudClient, type NextcloudCredentials} from '../api/client';
+import {MemoriesRepository, type MediaUrls} from '../api/MemoriesRepository';
+import {getUser, revokeAppPassword} from '../api/nextcloudAuth';
+import type {AuthSubmitResult, AuthFormPayload} from '../api/types';
 import type {PhotoRepository} from '../domain/PhotoRepository';
+import {hasHelperService, startMediaProxy} from '../platform/helperService';
 import {
 	readAccountsStore,
 	writeAccountsStore,
 	addAccountToStore,
+	updateAccountInStore,
 	removeAccountFromStore,
 	setDefaultInStore,
 	setLastActiveInStore,
@@ -16,19 +19,21 @@ import {
 import {randomId} from '../utils/uuid';
 import {makeAuthErrorMessage} from './_authHelpers';
 
-const accountToConfig = (acc: Account): UserCredentialsConfig | ApiKeyConfig => {
-	if (acc.method === AuthMethod.API_KEY) {
-		if (!acc.apiKey) throw new Error(`[useAccounts] API_KEY account ${acc.id} has no apiKey`);
-		return {baseUrl: acc.baseUrl, method: AuthMethod.API_KEY, apiKey: acc.apiKey};
-	}
-	if (!acc.email) throw new Error(`[useAccounts] USER_CREDENTIALS account ${acc.id} has no email`);
-	return {
-		baseUrl: acc.baseUrl,
-		method: AuthMethod.USER_CREDENTIALS,
-		email: acc.email,
-		accessToken: acc.accessToken,
-	};
-};
+const credentialsOf = (a: Account): NextcloudCredentials => ({baseUrl: a.baseUrl, loginName: a.loginName, appPassword: a.appPassword});
+
+// Without the helper service (a desktop browser during development) media URLs point at
+// Nextcloud directly. Those need the Authorization header, so images won't load there.
+const directMedia = (baseUrl: string): MediaUrls => ({
+	memoriesUrl: (path) => `${baseUrl}/index.php/apps/memories/${path.replace(/^\/+/, '')}`,
+	previewUrl: (fileid, x, y, a) => `${baseUrl}/index.php/apps/memories/api/image/preview/${fileid}?x=${x}&y=${y}&a=${a}`,
+});
+
+async function createRepository(account: Account): Promise<MemoriesRepository> {
+	const media = hasHelperService()
+		? await startMediaProxy({server: account.baseUrl, loginName: account.loginName, appPassword: account.appPassword})
+		: directMedia(account.baseUrl);
+	return new MemoriesRepository(new NextcloudClient(credentialsOf(account)), media);
+}
 
 const resolveActiveId = (store: AccountsStore): string | null =>
 	store.defaultAccountId ?? store.lastActiveAccountId ?? store.accounts[0]?.id ?? null;
@@ -42,22 +47,27 @@ export const useAccounts = () => {
 	const [repository, setRepository] = useState<PhotoRepository | null>(null);
 	const [isValidating, setIsValidating] = useState<boolean>(() => resolveActiveId(getInitial()) !== null);
 	const [validationError, setValidationError] = useState('');
+	const repositoryRef = useRef<MemoriesRepository | null>(null);
 
 	const persist = useCallback((next: AccountsStore) => {
 		writeAccountsStore(next);
 		setStore(next);
 	}, []);
 
+	// Swaps the active repository and stops the previous one's media proxy.
+	const installRepository = useCallback((next: MemoriesRepository | null) => {
+		const previous = repositoryRef.current;
+		repositoryRef.current = next;
+		setRepository(next);
+		if (previous && previous !== next) previous.dispose();
+	}, []);
+
+	useEffect(() => () => repositoryRef.current?.dispose(), []);
+
 	const activate = useCallback(async (id: string | null) => {
-		if (!id) {
-			setRepository(null);
-			setActiveAccountId(null);
-			setIsValidating(false);
-			return;
-		}
-		const account = readAccountsStore().accounts.find(a => a.id === id);
-		if (!account) {
-			setRepository(null);
+		const account = id ? readAccountsStore().accounts.find(a => a.id === id) : undefined;
+		if (!id || !account) {
+			installRepository(null);
 			setActiveAccountId(null);
 			setIsValidating(false);
 			return;
@@ -65,24 +75,22 @@ export const useAccounts = () => {
 		setIsValidating(true);
 		setValidationError('');
 		try {
-			const client = new APIClient(accountToConfig(account));
-			const ok = await validateAuth(client);
-			if (!ok) {
-				setRepository(null);
-				setActiveAccountId(id);
-				return;
+			const user = await getUser(credentialsOf(account));
+			if (user.displayName !== account.displayName) {
+				persist(updateAccountInStore(readAccountsStore(), id, {displayName: user.displayName}));
 			}
-			setRepository(new ImmichRepository(client));
+			installRepository(await createRepository(account));
 			setActiveAccountId(id);
 		} catch (error) {
 			console.error('[useAccounts] validation failed', error);
-			setValidationError(makeAuthErrorMessage(error, account.method));
-			setRepository(null);
+			// A 401 means the app password was revoked (Nextcloud → Settings → Security).
+			setValidationError(makeAuthErrorMessage(error));
+			installRepository(null);
 			setActiveAccountId(id);
 		} finally {
 			setIsValidating(false);
 		}
-	}, []);
+	}, [installRepository, persist]);
 
 	useEffect(() => {
 		void activate(activeAccountId);
@@ -95,61 +103,43 @@ export const useAccounts = () => {
 			setIsValidating(true);
 			setValidationError('');
 			try {
-				let account: Account;
-				if (input.method === AuthMethod.USER_CREDENTIALS) {
-					const tempClient = new APIClient({
-						baseUrl: input.baseUrl,
-						method: AuthMethod.USER_CREDENTIALS,
-						email: input.email,
-					});
-					const loginResponse = await tempClient.fetch<{accessToken: string}>('/auth/login', {
-						method: 'POST',
-						body: JSON.stringify({email: input.email, password: input.password}),
-					});
-					account = {
-						id: randomId(),
-						baseUrl: input.baseUrl,
-						method: AuthMethod.USER_CREDENTIALS,
-						email: input.email,
-						accessToken: loginResponse.accessToken,
-						addedAt: Date.now(),
-					};
-				} else {
-					const probe = new APIClient({
-						baseUrl: input.baseUrl,
-						method: AuthMethod.API_KEY,
-						apiKey: input.apiKey,
-					});
-					await probe.fetch('/users/me');
-					account = {
-						id: randomId(),
-						baseUrl: input.baseUrl,
-						method: AuthMethod.API_KEY,
-						apiKey: input.apiKey,
-						addedAt: Date.now(),
-					};
-				}
-
-				const next = addAccountToStore(store, account);
+				const credentials: NextcloudCredentials = {baseUrl: input.baseUrl, loginName: input.loginName, appPassword: input.appPassword};
+				const user = await getUser(credentials);
+				const account: Account = {id: randomId(), ...credentials, displayName: user.displayName, addedAt: Date.now()};
+				// Signing in again to the same account replaces the old entry and its app password.
+				const existing = store.accounts.find(a => a.baseUrl === account.baseUrl && a.loginName === account.loginName);
+				let next = existing ? removeAccountFromStore(store, existing.id) : store;
+				next = addAccountToStore(next, account);
+				if (existing && store.defaultAccountId === existing.id) next = setDefaultInStore(next, account.id);
 				persist(next);
-				const client = new APIClient(accountToConfig(account));
-				setRepository(new ImmichRepository(client));
+				installRepository(await createRepository(account));
 				setActiveAccountId(account.id);
+				if (existing) {
+					revokeAppPassword(credentialsOf(existing)).catch((e) => console.warn('[useAccounts] could not revoke the replaced app password', e));
+				}
 				return {success: true};
 			} catch (error) {
 				console.error('[useAccounts] addAccount failed', error);
-				return {success: false, errorMessage: makeAuthErrorMessage(error, input.method)};
+				return {success: false, errorMessage: makeAuthErrorMessage(error)};
 			} finally {
 				setIsValidating(false);
 			}
 		},
-		[persist, store],
+		[installRepository, persist, store],
 	);
 
+	// Removing an account signs it out: its app password is revoked on the server too.
+	// Local data is cleared even if the server can't be reached.
 	const removeAccount = useCallback(
 		(id: string) => {
+			const account = store.accounts.find(a => a.id === id);
 			const next = removeAccountFromStore(store, id);
 			persist(next);
+			if (account) {
+				revokeAppPassword(credentialsOf(account)).catch((e) => {
+					if (!(e instanceof APIError)) console.warn('[useAccounts] revoke failed', e);
+				});
+			}
 			if (id === activeAccountId) {
 				void activate(next.lastActiveAccountId);
 			}

@@ -1,5 +1,3 @@
-import {AuthMethod, type AuthConfig} from './types';
-
 export class APIError extends Error {
 	public status?: number;
 
@@ -10,83 +8,100 @@ export class APIError extends Error {
 	}
 }
 
-export class APIClient {
-	private baseUrl: string;
-	private authConfig: AuthConfig;
+// An account's connection to Nextcloud: the server's base URL (with any subfolder, no
+// trailing slash) and an app password from Login Flow v2.
+export interface NextcloudCredentials {
+	baseUrl: string;
+	loginName: string;
+	appPassword: string;
+}
 
-	constructor(config: AuthConfig) {
-		let normalized = config.baseUrl.trim();
-		normalized = normalized.replace(/\/+$/, '');
-		if (!normalized.endsWith('/api')) {
-			normalized = `${normalized}/api`;
-		}
+const REQUEST_TIMEOUT_MS = 15000;
 
-		this.baseUrl = normalized;
-		this.authConfig = config;
+// "cloud.example.com/" → "https://cloud.example.com"
+// "https://example.com/nextcloud/index.php/apps/memories/" → "https://example.com/nextcloud"
+export function normalizeServerUrl(raw: string): string {
+	let s = raw.trim();
+	if (!s || /^https?:\/\/?$/i.test(s)) throw new Error('Enter your Nextcloud address.');
+	if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
+	let u: URL;
+	try {
+		u = new URL(s);
+	} catch {
+		throw new Error("That doesn't look like a web address.");
+	}
+	const path = u.pathname
+		.replace(/\/+$/, '')
+		.replace(/\/(index\.php\/)?apps\/memories(\/.*)?$/, '')
+		.replace(/\/index\.php$/, '')
+		.replace(/\/+$/, '');
+	return u.origin + path;
+}
+
+// btoa only takes Latin-1; login names can be any UTF-8.
+const base64 = (s: string): string => btoa(unescape(encodeURIComponent(s)));
+
+// fetch with a timeout that also honours a caller's AbortSignal. Network, TLS and timeout
+// failures become APIError without a status; HTTP errors become APIError with the status.
+export async function request(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+	const controller = new AbortController();
+	const outer = options.signal;
+	const onOuterAbort = () => controller.abort();
+	if (outer) {
+		if (outer.aborted) controller.abort();
+		else outer.addEventListener('abort', onOuterAbort);
+	}
+	const timer = setTimeout(() => controller.abort(), timeoutMs);
+	try {
+		return await fetch(url, {...options, signal: controller.signal});
+	} catch (error) {
+		if (outer?.aborted) throw error; // caller cancelled: let it propagate as an abort
+		const reason = controller.signal.aborted ? 'The server took too long to answer' : error instanceof Error ? error.message : 'Unknown error';
+		throw new APIError(`Network error: ${reason}`);
+	} finally {
+		clearTimeout(timer);
+		outer?.removeEventListener('abort', onOuterAbort);
+	}
+}
+
+export class NextcloudClient {
+	readonly credentials: NextcloudCredentials;
+
+	constructor(credentials: NextcloudCredentials) {
+		this.credentials = credentials;
 	}
 
-	private getHeaders(): HeadersInit {
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
+	get baseUrl(): string {
+		return this.credentials.baseUrl;
+	}
+
+	// Basic auth with the app password plus OCS-APIRequest passes Nextcloud's CSRF check
+	// on every route, without cookies.
+	authHeaders(): Record<string, string> {
+		const {loginName, appPassword} = this.credentials;
+		return {
+			Authorization: `Basic ${base64(`${loginName}:${appPassword}`)}`,
+			'OCS-APIRequest': 'true',
 			Accept: 'application/json',
 		};
-		switch (this.authConfig.method) {
-			case AuthMethod.USER_CREDENTIALS:
-				if (this.authConfig.accessToken) headers.Authorization = `Bearer ${this.authConfig.accessToken}`;
-				break;
-			case AuthMethod.API_KEY:
-				headers['x-api-key'] = this.authConfig.apiKey;
-				break;
+	}
+
+	// path is relative to the server root, e.g. '/ocs/v2.php/cloud/user?format=json'.
+	async fetch<T>(path: string, options: RequestInit = {}, timeoutMs?: number): Promise<T> {
+		const url = `${this.baseUrl}${path}`;
+		const headers: Record<string, string> = {...this.authHeaders()};
+		if (options.body) headers['Content-Type'] = 'application/json';
+		const response = await request(url, {...options, headers: {...headers, ...(options.headers as Record<string, string> | undefined)}}, timeoutMs);
+		if (!response.ok) {
+			console.error(`[API] ${options.method || 'GET'} ${url} failed with ${response.status}`);
+			throw new APIError(`API request failed: ${response.status}`, response.status);
 		}
-		return headers;
+		const text = await response.text();
+		return text ? (JSON.parse(text) as T) : ({} as T);
 	}
 
-	private getMediaAuthParam(): {name: string; value: string} {
-		return this.authConfig.method === AuthMethod.USER_CREDENTIALS ? {name: 'sessionKey', value: this.authConfig.accessToken || ''} : {name: 'apiKey', value: this.authConfig.apiKey};
-	}
-
-	// Media URLs carry auth as a query param so <img>/<video> tags load them directly.
-	private buildMediaUrl(path: string): string {
-		const {name, value} = this.getMediaAuthParam();
-		const sep = path.includes('?') ? '&' : '?';
-		return `${this.baseUrl}${path}${sep}${name}=${value}`;
-	}
-
-	public async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-		const url = `${this.baseUrl}${endpoint}`;
-		const method = options.method || 'GET';
-
-		try {
-			const response = await fetch(url, {
-				...options,
-				headers: {...this.getHeaders(), ...options.headers},
-			});
-			if (!response.ok) {
-				console.error(`[API] ${method} ${url} failed with ${response.status}: ${response.statusText}`);
-				throw new APIError(`API request failed: ${response.statusText}`, response.status);
-			}
-
-			const text = await response.text();
-			return text ? JSON.parse(text) : ({} as T);
-		} catch (error) {
-			if (error instanceof APIError) {
-				throw error;
-			}
-			console.error(`[API] ${method} ${url} network error:`, error);
-			throw new APIError(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
-	}
-
-	// Immich v3 serves the unedited original (ignoring crops/rotations) unless edited=true.
-	public getThumbnailUrl(assetId: string, size: 'preview' | 'thumbnail' = 'thumbnail'): string {
-		return this.buildMediaUrl(`/assets/${assetId}/thumbnail?size=${size}&edited=true`);
-	}
-
-	public getFaceThumbnailUrl(personId: string): string {
-		return this.buildMediaUrl(`/people/${personId}/thumbnail`);
-	}
-
-	public getVideoPlaybackUrl(assetId: string): string {
-		return this.buildMediaUrl(`/assets/${assetId}/video/playback`);
+	// Memories API, e.g. memories('/days').
+	memories<T>(path: string, options: RequestInit = {}, timeoutMs?: number): Promise<T> {
+		return this.fetch<T>(`/index.php/apps/memories/api${path}`, options, timeoutMs);
 	}
 }

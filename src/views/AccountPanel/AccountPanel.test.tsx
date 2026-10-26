@@ -1,7 +1,6 @@
 import React from 'react';
 import {render, screen, fireEvent} from '@testing-library/react';
 import Spotlight from '@enact/spotlight';
-import {AuthMethod} from '../../api/types';
 import type {Account} from '../../utils/accountsStore';
 import {AccountPanel} from './AccountPanel';
 
@@ -65,8 +64,9 @@ jest.mock('@enact/sandstone/Icon', () => ({
 const acc: Account = {
 	id: 'a',
 	baseUrl: 'http://x',
-	method: AuthMethod.USER_CREDENTIALS,
-	email: 'me@example.com',
+	loginName: 'me',
+	appPassword: 'pw',
+	displayName: 'Me Myself',
 	addedAt: 1,
 };
 
@@ -142,7 +142,7 @@ describe('AccountPanel', () => {
 		fireEvent.mouseMove(overlay, {clientX: 1, clientY: 1});
 		expect(onWindowMouseMove).not.toHaveBeenCalled();
 
-		const card = screen.getByText('me@example.com').closest('[role="button"]')!;
+		const card = screen.getByText('Me Myself').closest('[role="button"]')!;
 		fireEvent.mouseMove(card, {clientX: 2, clientY: 2});
 		expect(onWindowMouseMove).toHaveBeenCalledTimes(1);
 
@@ -159,7 +159,7 @@ describe('AccountPanel', () => {
 				{...noopHandlers}
 			/>,
 		);
-		expect(screen.getByText(/Welcome to Immich/i)).toBeTruthy();
+		expect(screen.getByText(/Welcome to Memories TV/i)).toBeTruthy();
 	});
 
 	test('overlay grid shows cards + add', () => {
@@ -173,7 +173,7 @@ describe('AccountPanel', () => {
 			/>,
 		);
 		expect(screen.getByRole('dialog').getAttribute('aria-modal')).toBe('true');
-		expect(screen.getByText('me@example.com')).toBeTruthy();
+		expect(screen.getByText('Me Myself')).toBeTruthy();
 		expect(screen.getByText(/Add account/i)).toBeTruthy();
 	});
 
@@ -188,7 +188,7 @@ describe('AccountPanel', () => {
 			/>,
 		);
 		fireEvent.click(screen.getByText(/Add account/i).closest('[role="button"]')!);
-		expect(screen.getByRole('button', {name: /Connect/i})).toBeTruthy();
+		expect(screen.getByRole('button', {name: /Continue/i})).toBeTruthy();
 	});
 
 	test('form Back returns to grid when accounts.length >= 1', () => {
@@ -203,7 +203,7 @@ describe('AccountPanel', () => {
 		);
 		fireEvent.click(screen.getByText(/Add account/i).closest('[role="button"]')!);
 		fireEvent.click(screen.getByRole('button', {name: /Back/i}));
-		expect(screen.queryByRole('button', {name: /Connect/i})).toBeNull();
+		expect(screen.queryByRole('button', {name: /Continue/i})).toBeNull();
 	});
 
 	test('Back key on overlay grid closes the overlay (webOS 10 keyCode 1536)', () => {
@@ -235,9 +235,9 @@ describe('AccountPanel', () => {
 			/>,
 		);
 		fireEvent.click(screen.getByText(/Add account/i).closest('[role="button"]')!);
-		screen.getByRole('button', {name: /Connect/i});
+		screen.getByRole('button', {name: /Continue/i});
 		fireEvent.keyDown(window, {keyCode: 1536});
-		expect(screen.queryByRole('button', {name: /Connect/i})).toBeNull();
+		expect(screen.queryByRole('button', {name: /Continue/i})).toBeNull();
 		expect(onCloseOverlay).not.toHaveBeenCalled();
 	});
 
@@ -254,16 +254,16 @@ describe('AccountPanel', () => {
 			/>,
 		);
 		fireEvent.click(screen.getByText(/Add account/i).closest('[role="button"]')!);
-		screen.getByRole('button', {name: /Connect/i});
+		screen.getByRole('button', {name: /Continue/i});
 
 		// Backspace originating from a real input must be left alone so the native
 		// editor deletes a character. Some webOS firmwares re-map Back to keyCode 8
 		// — that fallback should only fire when focus is on a non-editable element.
-		const urlInput = screen.getByPlaceholderText('http(s)://…');
+		const urlInput = screen.getByPlaceholderText('https://cloud.example.com');
 		fireEvent.keyDown(urlInput, {keyCode: 8});
 
 		// Still on the form, overlay not closed
-		screen.getByRole('button', {name: /Connect/i});
+		screen.getByRole('button', {name: /Continue/i});
 		expect(onCloseOverlay).not.toHaveBeenCalled();
 	});
 
@@ -280,19 +280,19 @@ describe('AccountPanel', () => {
 			/>,
 		);
 		fireEvent.click(screen.getByText(/Add account/i).closest('[role="button"]')!);
-		screen.getByRole('button', {name: /Connect/i});
+		screen.getByRole('button', {name: /Continue/i});
 
 		// On a real TV the virtual keyboard's Backspace arrives as a keyCode-8 keydown whose
 		// target is <body>, not the focused <input> (Sandstone types into an <input> in a
 		// FloatingLayer popup). Reproduce that mismatch: focus the field, dispatch from body.
 		// The capture handler must still detect we're editing text via document.activeElement.
-		const urlInput = screen.getByPlaceholderText('http(s)://…');
+		const urlInput = screen.getByPlaceholderText('https://cloud.example.com');
 		urlInput.focus();
 		expect(document.activeElement).toBe(urlInput);
 		fireEvent.keyDown(document.body, {keyCode: 8});
 
 		// Still on the form, not kicked back to the grid
-		screen.getByRole('button', {name: /Connect/i});
+		screen.getByRole('button', {name: /Continue/i});
 		expect(onCloseOverlay).not.toHaveBeenCalled();
 	});
 });
