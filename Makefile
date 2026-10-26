@@ -3,7 +3,7 @@ APP_ID := com.wisp.memoriestv
 DEVICE ?= LG_TV
 
 pack:
-	npm run pack-p && ares-package dist/ -o ./build/ -n
+	npm run pack-p && ares-package dist/ service/ -o ./build/ -n
 
 install:
 	ares-install --device $(DEVICE) ./build/$(APP_ID)_$(VERSION)_all.ipk
