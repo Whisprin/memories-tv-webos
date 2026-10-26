@@ -13,7 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Whisprin/memories-tv-webos" alt="MIT license"></a>
 </p>
 
-> **Work in progress.** The timeline, viewer, videos and slideshow work. Albums, people and places come next.
+> **Version 0.9.** Every section of Memories' web app works except Explore, Map and Trash. Memories TV only reads your library: nothing on your server is changed.
 > There are no releases yet: install it by building from source.
 
 Memories TV is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) by Quentin Jean-Amans. The TV interface is theirs; the data layer, sign-in and media handling were replaced to talk to Nextcloud Memories instead of Immich.
@@ -21,6 +21,15 @@ Memories TV is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-
 ## ✨ Features
 
 - 🖼️ **Timeline**: your whole Memories library, day by day, in a justified grid that keeps every photo's shape. A date scrubber on the right jumps straight to any month or year.
+- 🧭 **Memories' sections**, in the same order as its web app:
+  - **Folders**: browse your folders from the Folders path set in Memories, with or without subfolders.
+  - **Favourites**: the photos and videos you starred.
+  - **Albums**: your own and shared albums.
+  - **People**: faces from [Recognize](https://apps.nextcloud.com/apps/recognize) or [Face Recognition](https://apps.nextcloud.com/apps/facerecognition).
+  - **Archive**: photos you archived in Memories, which the timeline hides.
+  - **On this day**: photos taken on today's date in past years.
+  - **Places**: photos grouped by where they were taken.
+  - **Tags**: Nextcloud's collaborative tags.
 - 🔍 **Full-screen viewer**: controls that fade away to leave the photo alone, and a rotate button for sideways shots (a local viewing preference: nothing is written to your server).
 - ▶️ **Videos**: played from the original file, with seeking. No transcoding needed on the server.
 - 🎞️ **Slideshow**: crossfades, shuffle, adjustable interval, and the TV screen saver stays away while it runs.
@@ -28,7 +37,7 @@ Memories TV is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-
 - 👥 **Several accounts**: add servers or family members and switch between them.
 - 🎮 **Made for the remote**: every screen works with the arrow keys; the Magic Remote pointer and scroll wheel work too.
 
-Coming next: albums, people (Recognize), places, folders, favourites and *On This Day*.
+Not yet: Explore, Map and Trash.
 
 ## 📋 Requirements
 
@@ -72,9 +81,13 @@ The app gets its own app password, listed as **Memories TV** under Nextcloud →
 
 ## 🛟 Troubleshooting
 
-### "Couldn't reach the server"
+### "Couldn't reach the server" while signing in
 
 Check the address, that the TV is online, and that the server's HTTPS certificate is publicly trusted. A self-signed certificate is the most common cause.
+
+### "Can't connect to Nextcloud" when the app starts
+
+The TV is offline, or your server is down or in maintenance mode. The message says which. Choose **Try again** once it's back; if the TV was offline, the app tries again by itself when it reconnects. **Accounts** lets you switch to another account in the meantime.
 
 ### "Nextcloud Memories was not found at this address"
 
@@ -91,6 +104,10 @@ Video previews are disabled in Nextcloud. Enable them as described under [Requir
 ### "The server rejected the sign-in"
 
 The app password was revoked or has expired. Open the account menu and sign in again.
+
+### People, Places or Tags are empty
+
+Each needs something on the server: **People** needs Recognize or Face Recognition to have found faces, **Places** needs photos with a location and Memories' places set up (reverse geocoding), and **Tags** needs Nextcloud's collaborative tags on your photos.
 
 ## 🛠️ Development
 
@@ -131,4 +148,4 @@ Memories TV is an unofficial, third-party client. It is not affiliated with or e
 
 ## 📄 License
 
-MIT. Based on [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) © Quentin Jean-Amans. See [LICENSE](LICENSE).
+MIT © Robert Sprunk. Based on [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) © Quentin Jean-Amans. See [LICENSE](LICENSE).
