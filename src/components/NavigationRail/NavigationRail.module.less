@@ -19,8 +19,16 @@
   background: transparent;
   border-right: 1px solid @hairline;
   padding: @page-inset-top 32px 48px;
-  overflow: hidden;
+  // Scrolls when the sections don't fit the screen height; the focused item is scrolled into
+  // view in NavigationRail.tsx (Spotlight focuses with preventScroll).
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
   box-sizing: border-box;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .navItem {

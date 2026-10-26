@@ -1,4 +1,5 @@
 import React, {useMemo} from 'react';
+import type {FocusEvent} from 'react';
 import Icon from '@enact/sandstone/Icon';
 import {createSpotlightContainer, SpottableButton} from '../../utils/spotlight';
 import {NAVIGATION_RAIL_ID} from '../../utils/constants';
@@ -16,12 +17,16 @@ interface NavigationRailProps {
 const NAV_ITEMS: {view: View; icon: string; label: string}[] = [
 	{view: 'photos', icon: 'picture', label: 'Timeline'},
 	{view: 'favorites', icon: 'star', label: 'Favourites'},
-	{view: 'albums', icon: 'folder', label: 'Albums'},
+	{view: 'albums', icon: 'files', label: 'Albums'},
 	{view: 'people', icon: 'profile', label: 'People'},
 	{view: 'places', icon: 'location', label: 'Places'},
 ];
 
 const RailContainer = createSpotlightContainer({enterTo: 'last-focused'});
+
+// Spotlight focuses with preventScroll, so a rail taller than the screen has to bring the
+// focused item into view itself.
+const revealFocused = (event: FocusEvent<HTMLElement>) => event.currentTarget.scrollIntoView?.({block: 'nearest'});
 
 export const NavigationRail: React.FC<NavigationRailProps> = React.memo(({activeView, onNavigate, onOpenAccount, accountLetter, accountGradient}) => {
 	const navHandlers = useMemo(
@@ -39,6 +44,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = React.memo(({active
 					key={view}
 					className={[css.navItem, activeView === view ? css.active : ''].filter(Boolean).join(' ')}
 					onClick={navHandlers[view]}
+					onFocus={revealFocused}
 				>
 					<div className={css.iconContainer}>
 						<Icon size="tiny">{icon}</Icon>
@@ -48,7 +54,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = React.memo(({active
 			))}
 			<div className={css.spacer} />
 			<div className={css.divider} />
-			<SpottableButton className={css.navItem} onClick={onOpenAccount}>
+			<SpottableButton className={css.navItem} onClick={onOpenAccount} onFocus={revealFocused}>
 				<div className={css.iconContainer}>
 					<span className={css.avatar} style={{background: accountGradient}}>
 						{accountLetter}
