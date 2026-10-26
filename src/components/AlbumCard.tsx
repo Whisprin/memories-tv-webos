@@ -3,13 +3,15 @@ import {useRepository} from '../domain/RepositoryContext';
 import type {Album} from '../domain/types';
 import {ThumbnailCard} from './ThumbnailCard';
 import {formatCount} from '../utils/FormattingService';
+import {spotlightSafe} from '../utils/spotlightId';
 
 interface AlbumCardProps {
 	album: Album;
 	onSelect?: (albumId: string) => void;
 }
 
-export const albumCardSpotlightId = (albumId: string): string => `album-card-${albumId}`;
+// Album ids are '<owner>/<album name>', free text that Spotlight can't use as is.
+export const albumCardSpotlightId = (albumId: string): string => `album-card-${spotlightSafe(albumId)}`;
 
 export const AlbumCard: React.FC<AlbumCardProps> = React.memo(({album, onSelect}) => {
 	const repository = useRepository();

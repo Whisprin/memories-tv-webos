@@ -1,4 +1,4 @@
-import {MemoriesRepository, dayIdToDate, photoToAsset, type MediaUrls} from './MemoriesRepository';
+import {MemoriesRepository, albumToAlbum, dayIdToDate, photoToAsset, type MediaUrls} from './MemoriesRepository';
 import type {NextcloudClient} from './client';
 
 // 2026-03-01 is day 20513 since 1970-01-01.
@@ -114,5 +114,36 @@ describe('MemoriesRepository', () => {
 	test('dispose stops the media proxy', () => {
 		makeRepo(jest.fn()).dispose();
 		expect(media.stop).toHaveBeenCalled();
+	});
+});
+
+describe('albums', () => {
+	const holiday = {album_id: 1, name: 'Holiday 2026', user: 'alice', count: 12, created: 200, cover: 55, last_added_photo: 77};
+	const family = {album_id: 2, name: 'Family', user: 'bob', count: 3, created: 300, cover: null, last_added_photo: 88};
+	const empty = {album_id: 3, name: 'Empty', user: 'alice', count: 0, created: 100, cover: null, last_added_photo: 0};
+
+	test('maps an album: owner/name id, chosen cover first, then last added photo', () => {
+		expect(albumToAlbum(holiday)).toEqual({id: 'alice/Holiday 2026', albumName: 'Holiday 2026', description: '', albumThumbnailAssetId: '55', assetCount: 12});
+		expect(albumToAlbum(family).albumThumbnailAssetId).toBe('88');
+		expect(albumToAlbum(empty).albumThumbnailAssetId).toBeNull();
+	});
+
+	test('lists albums newest first', async () => {
+		const memories = jest.fn().mockResolvedValue([holiday, family, empty]);
+		const albums = await makeRepo(memories).getAlbums();
+		expect(memories).toHaveBeenCalledWith('/clusters/albums');
+		expect(albums.map((a) => a.id)).toEqual(['bob/Family', 'alice/Holiday 2026', 'alice/Empty']);
+	});
+
+	test('finds an album by id, refreshing the list once if needed', async () => {
+		const memories = jest.fn().mockResolvedValueOnce([holiday]).mockResolvedValueOnce([holiday, family]);
+		const repo = makeRepo(memories);
+		await expect(repo.getAlbum('bob/Family')).resolves.toMatchObject({id: 'bob/Family', albumName: 'Family', order: 'desc'});
+		expect(memories).toHaveBeenCalledTimes(2);
+	});
+
+	test('an unknown album is a 404', async () => {
+		const memories = jest.fn().mockResolvedValue([holiday]);
+		await expect(makeRepo(memories).getAlbum('alice/Nope')).rejects.toMatchObject({status: 404});
 	});
 });

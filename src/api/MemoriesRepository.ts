@@ -24,6 +24,19 @@ interface MemoriesPhoto {
 	liveid?: string;
 }
 
+// GET /api/clusters/albums: the user's own albums and those shared with them.
+interface MemoriesAlbum {
+	album_id: number;
+	name: string;
+	// owner's user id
+	user: string;
+	count: number;
+	created?: number;
+	// cover photo chosen in Memories, if any
+	cover?: number | null;
+	last_added_photo?: number;
+}
+
 // Media URLs. In the app these come from the helper service's localhost proxy, which adds
 // the Authorization header that <img>/<video> can't send (see platform/helperService.ts).
 export interface MediaUrls {
@@ -44,6 +57,21 @@ const RANDOM_MAX_DAYS = 12;
 
 export const dayIdToDate = (dayid: number): string => new Date(dayid * DAY_MS).toISOString().slice(0, 10);
 const monthBucketOf = (dayid: number): string => `${dayIdToDate(dayid).slice(0, 7)}-01`;
+
+// Albums are addressed as '<owner>/<album name>', which is also the timeline filter value.
+const albumIdOf = (a: MemoriesAlbum): string => `${a.user}/${a.name}`;
+
+export function albumToAlbum(a: MemoriesAlbum): Album {
+	// Like Memories' web app: the chosen cover, else the most recently added photo.
+	const cover = a.cover && a.cover > 0 ? a.cover : a.last_added_photo && a.last_added_photo > 0 ? a.last_added_photo : null;
+	return {
+		id: albumIdOf(a),
+		albumName: a.name,
+		description: '',
+		albumThumbnailAssetId: cover ? String(cover) : null,
+		assetCount: a.count,
+	};
+}
 
 export function photoToAsset(p: MemoriesPhoto): TimelineAsset {
 	// The day comes from dayid so day grouping always matches the month buckets; epoch only
@@ -73,6 +101,7 @@ export class MemoriesRepository implements PhotoRepository {
 	private media: MediaUrls;
 	// Day lists per scope, kept from getBuckets so month loads know which days to fetch.
 	private days = new Map<string, Promise<MemoriesDay[]>>();
+	private albums: Promise<MemoriesAlbum[]> | null = null;
 
 	constructor(client: NextcloudClient, media: MediaUrls) {
 		this.client = client;
@@ -121,14 +150,32 @@ export class MemoriesRepository implements PhotoRepository {
 		return photos.map(photoToAsset);
 	}
 
-	// Albums, people and places follow in the next step.
+	private loadAlbums(refresh = false): Promise<MemoriesAlbum[]> {
+		if (refresh || !this.albums) {
+			const albums = this.client.memories<MemoriesAlbum[]>('/clusters/albums');
+			this.albums = albums;
+			albums.catch(() => {
+				if (this.albums === albums) this.albums = null;
+			});
+		}
+		return this.albums;
+	}
+
+	// Newest album first.
 	public async getAlbums(): Promise<Album[]> {
-		return [];
+		const albums = await this.loadAlbums(true);
+		return [...albums].sort((a, b) => (b.created ?? 0) - (a.created ?? 0)).map(albumToAlbum);
 	}
 
 	public async getAlbum(albumId: string): Promise<AlbumDetails> {
-		throw new APIError(`Album ${albumId} not available yet`, 404);
+		let album = (await this.loadAlbums()).find((a) => albumIdOf(a) === albumId);
+		if (!album) album = (await this.loadAlbums(true)).find((a) => albumIdOf(a) === albumId);
+		if (!album) throw new APIError(`Album ${albumId} not found`, 404);
+		// Memories keeps no per-album sort order; newest first like the timeline.
+		return {...albumToAlbum(album), order: 'desc'};
 	}
+
+	// People and places follow in the next steps.
 
 	public async getPeople(): Promise<Person[]> {
 		return [];
