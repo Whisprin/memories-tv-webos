@@ -21,7 +21,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 	const [activeView, setActiveView] = useState<View>('photos');
 	const [contentWidth, setContentWidth] = useState(window.innerWidth - SIDEBAR_WIDTH);
 
-	// Back on another tab returns to Photos; Back on Photos (nothing open) exits the app,
+	// Back on another tab returns to the Timeline; Back on the Timeline (nothing open) exits the app,
 	// see useWebOSKeys.
 	const showPhotos = useCallback(() => setActiveView('photos'), []);
 	useWebOSKeys({onBack: activeView === 'photos' ? undefined : showPhotos});
