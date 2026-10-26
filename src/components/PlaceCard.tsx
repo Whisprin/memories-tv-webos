@@ -1,34 +1,26 @@
-import React, {useCallback, useMemo} from 'react';
-import {useRepository} from '../domain/RepositoryContext';
+import React, {useCallback} from 'react';
 import type {Place} from '../domain/types';
 import {ThumbnailCard} from './ThumbnailCard';
+import {formatCount} from '../utils/FormattingService';
+import {spotlightSafe} from '../utils/spotlightId';
 
 interface PlaceCardProps {
 	place: Place;
-	onSelect?: (city: string) => void;
+	onSelect?: (place: Place) => void;
 }
 
-// Spotlight only resolves string ids made of [A-Za-z0-9_-], and city names are free text: every
-// other character (underscore included, so the encoding stays reversible) becomes _ + 6 hex digits.
-export const placeCardSpotlightId = (city: string): string =>
-	`place-card-${city.replace(/[^A-Za-z0-9-]/gu, (char) => '_' + char.codePointAt(0)!.toString(16).padStart(6, '0'))}`;
+export const placeCardSpotlightId = (placeId: string): string => `place-card-${spotlightSafe(placeId)}`;
 
 export const PlaceCard: React.FC<PlaceCardProps> = React.memo(({place, onSelect}) => {
-	const repository = useRepository();
-	const thumbnailUrl = useMemo(
-		() => repository.thumbnailUrl(place.thumbnailAssetId),
-		[repository, place.thumbnailAssetId]
-	);
-
-	const handleClick = useCallback(() => onSelect?.(place.city), [place.city, onSelect]);
+	const handleClick = useCallback(() => onSelect?.(place), [place, onSelect]);
 
 	return (
 		<ThumbnailCard
-			thumbnailUrl={thumbnailUrl}
-			title={place.city}
-			secondaryLine={place.country}
+			thumbnailUrl={place.coverUrl}
+			title={place.name}
+			secondaryLine={formatCount(place.assetCount, 'item')}
 			onClick={handleClick}
-			spotlightId={placeCardSpotlightId(place.city)}
+			spotlightId={placeCardSpotlightId(place.id)}
 		/>
 	);
 });

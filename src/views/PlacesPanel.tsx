@@ -5,22 +5,19 @@ import {QueryStateView} from '../components/QueryStateView';
 import PlaceView from './PlaceView';
 import {usePlaces} from '../hooks/usePlaces';
 import {useFocusOnReturn} from '../hooks/useFocusOnReturn';
+import type {Place} from '../domain/types';
 import type {RoutePanelProps} from '../types/navigation';
 import {formatCount} from '../utils/FormattingService';
 
 const PlacesPanel: React.FC<RoutePanelProps> = ({contentWidth}) => {
-	const [selectedCity, setSelectedCity] = useState<string | null>(null);
+	const [selected, setSelected] = useState<Place | null>(null);
 	const {data: places, isLoading, error} = usePlaces();
 
-	const handleSelectPlace = useCallback((city: string) => {
-		setSelectedCity(city);
-	}, []);
+	const handleBack = useCallback(() => setSelected(null), []);
+	useFocusOnReturn(selected?.id ?? null, placeCardSpotlightId);
 
-	const handleBack = useCallback(() => setSelectedCity(null), []);
-	useFocusOnReturn(selectedCity, placeCardSpotlightId);
-
-	if (selectedCity) {
-		return <PlaceView city={selectedCity} onBack={handleBack} contentWidth={contentWidth} />;
+	if (selected) {
+		return <PlaceView place={selected} onBack={handleBack} contentWidth={contentWidth} />;
 	}
 
 	return (
@@ -29,11 +26,11 @@ const PlacesPanel: React.FC<RoutePanelProps> = ({contentWidth}) => {
 			error={error}
 			isEmpty={!places?.length}
 			loadingText="Loading places…"
-			emptyText="No places found. Photos need location data to appear here."
+			emptyText="No places found. Places need location data in your photos and reverse geocoding set up in Memories."
 		>
 			<CollectionGrid title="Places" subtitle={places ? formatCount(places.length, 'place') : undefined}>
 				{places?.map((place) => (
-					<PlaceCard key={place.city} place={place} onSelect={handleSelectPlace} />
+					<PlaceCard key={place.id} place={place} onSelect={setSelected} />
 				))}
 			</CollectionGrid>
 		</QueryStateView>

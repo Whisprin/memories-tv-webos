@@ -46,6 +46,14 @@ interface MemoriesFace {
 	count: number;
 }
 
+// GET /api/clusters/places: places from reverse geocoding, with an id per place.
+interface MemoriesPlace {
+	cluster_id: number | string;
+	name: string;
+	count: number;
+	cover?: number | null;
+}
+
 // The parts of GET /api/config this app uses.
 interface MemoriesConfig {
 	recognize_enabled?: boolean;
@@ -134,6 +142,7 @@ export class MemoriesRepository implements PhotoRepository {
 	private scopeQuery(scope: TimelineScope): string {
 		if (scope.albumId) return `?albums=${encodeURIComponent(scope.albumId)}`;
 		if (scope.personId) return `?${this.faceBackend}=${encodeURIComponent(scope.personId)}`;
+		if (scope.placeId) return `?places=${encodeURIComponent(scope.placeId)}`;
 		return '';
 	}
 
@@ -221,14 +230,20 @@ export class MemoriesRepository implements PhotoRepository {
 		return faces.filter((f) => f.count > 0).sort((a, b) => b.count - a.count).map(faceToPerson);
 	}
 
-	// Places follow in the next step.
-
+	// Places with photos, by name. The cover is the chosen photo if Memories has one, else the
+	// cluster preview (which picks a photo on the server).
 	public async getPlaces(): Promise<Place[]> {
-		return [];
-	}
-
-	public async searchByCity(): Promise<TimelineAsset[]> {
-		return [];
+		const places = await this.client.memories<MemoriesPlace[]>('/clusters/places');
+		return places
+			.filter((p) => p.count > 0)
+			.map((p) => {
+				const id = String(p.cluster_id);
+				const coverUrl = p.cover && p.cover > 0
+					? this.thumbnailUrl(String(p.cover))
+					: this.media.memoriesUrl(`api/clusters/places/preview?name=${encodeURIComponent(id)}`, Number(id) || 0);
+				return {id, name: p.name || id, assetCount: p.count, coverUrl};
+			})
+			.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
 	// Memories has no random endpoint: sample random days and pick images from them.

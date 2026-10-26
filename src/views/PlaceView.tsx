@@ -1,28 +1,27 @@
 import React, {useMemo} from 'react';
-import {useSearch, type SearchQuery} from '../hooks/useSearch';
+import {useTimeline} from '../hooks/useTimeline';
 import {AssetGridView} from '../components/AssetGridView';
+import type {Place, TimelineScope} from '../domain/types';
 import {formatCount} from '../utils/FormattingService';
 
 interface PlaceViewProps {
-	city: string;
+	place: Place;
 	onBack: () => void;
 	contentWidth: number;
 }
 
-const PlaceView: React.FC<PlaceViewProps> = ({city, onBack, contentWidth}) => {
-	const query = useMemo<SearchQuery>(() => ({type: 'city', value: city}), [city]);
-	const {groups, isLoading, error} = useSearch(query);
-
-	const assetCount = useMemo(() => groups.reduce((sum, g) => sum + g.count, 0), [groups]);
+const PlaceView: React.FC<PlaceViewProps> = ({place, onBack, contentWidth}) => {
+	const scope = useMemo<TimelineScope>(() => ({placeId: place.id}), [place.id]);
+	const {timeline, isLoading, error} = useTimeline(scope);
 
 	return (
 		<AssetGridView
-			title={city}
-			subtitle={formatCount(assetCount, 'item')}
-			groups={groups}
+			title={place.name}
+			subtitle={formatCount(place.assetCount, 'item')}
+			timeline={timeline}
 			isLoading={isLoading}
 			error={error}
-			isEmpty={groups.length === 0}
+			isEmpty={timeline.allBuckets.length === 0}
 			emptyText="No photos found for this place."
 			spotlightId="place-grid"
 			onBack={onBack}

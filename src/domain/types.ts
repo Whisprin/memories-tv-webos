@@ -41,15 +41,18 @@ export interface AlbumDetails extends Album {
 export interface TimelineScope {
 	albumId?: string;
 	personId?: string;
+	placeId?: string;
 	order?: AssetOrder;
 }
 
 export const MAIN_TIMELINE: TimelineScope = {};
 
 export interface Place {
-	city: string;
-	country: string | null;
-	thumbnailAssetId: string;
+	id: string;
+	name: string;
+	assetCount: number;
+	// cover image, ready for <img src>
+	coverUrl: string;
 }
 
 export interface Person {

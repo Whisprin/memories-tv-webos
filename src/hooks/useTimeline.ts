@@ -6,8 +6,8 @@ import {groupAssetsByDay} from '../domain/transforms';
 import type {PhotoRepository} from '../domain/PhotoRepository';
 import {MAIN_TIMELINE, type DayGroup, type TimelineScope} from '../domain/types';
 
-const scopeKey = ({albumId, personId, order}: TimelineScope): string =>
-	albumId ? `album:${albumId}:${order ?? 'desc'}` : personId ? `person:${personId}` : 'main';
+const scopeKey = ({albumId, personId, placeId, order}: TimelineScope): string =>
+	albumId ? `album:${albumId}:${order ?? 'desc'}` : personId ? `person:${personId}` : placeId ? `place:${placeId}` : 'main';
 
 export interface RequestMonthsOptions {
 	// Clears failed months first so an explicit user action (scrubber jump) retries them,

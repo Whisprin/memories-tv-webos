@@ -188,3 +188,25 @@ describe('people', () => {
 		expect(memories).toHaveBeenCalledWith('/days?facerecognition=alice%2F12', {}, 30000);
 	});
 });
+
+describe('places', () => {
+	test('lists places with photos by name, with a cover from the chosen photo or the cluster preview', async () => {
+		const memories = jest.fn().mockResolvedValue([
+			{cluster_id: 62422, name: 'Berlin', count: 120, cover: 501},
+			{cluster_id: 9, name: 'Amsterdam', count: 8, cover: null},
+			{cluster_id: 5, name: 'Nowhere', count: 0},
+		]);
+		const places = await makeRepo(memories).getPlaces();
+		expect(memories).toHaveBeenCalledWith('/clusters/places');
+		expect(places).toEqual([
+			{id: '9', name: 'Amsterdam', assetCount: 8, coverUrl: 'proxy:9/api/clusters/places/preview?name=9'},
+			{id: '62422', name: 'Berlin', assetCount: 120, coverUrl: 'preview:501:512x512:1'},
+		]);
+	});
+
+	test('a place opens as a timeline filtered by its id', async () => {
+		const memories = jest.fn().mockResolvedValue([]);
+		await makeRepo(memories).getBuckets({placeId: '62422'});
+		expect(memories).toHaveBeenCalledWith('/days?places=62422', {}, 30000);
+	});
+});
