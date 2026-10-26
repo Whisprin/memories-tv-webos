@@ -210,3 +210,11 @@ describe('places', () => {
 		expect(memories).toHaveBeenCalledWith('/days?places=62422', {}, 30000);
 	});
 });
+
+describe('favourites', () => {
+	test('the favourites timeline uses the fav=1 filter', async () => {
+		const memories = jest.fn().mockResolvedValue([]);
+		await makeRepo(memories).getBuckets({favorites: true});
+		expect(memories).toHaveBeenCalledWith('/days?fav=1', {}, 30000);
+	});
+});

@@ -4,6 +4,7 @@ import {createSpotlightContainer} from '../utils/spotlight';
 import {useWebOSKeys} from '../hooks/useWebOSKeys';
 import {NavigationRail} from '../components/NavigationRail/NavigationRail';
 import MainPanel from './MainPanel';
+import FavoritesPanel from './FavoritesPanel';
 import AlbumsPanel from './AlbumsPanel';
 import PeoplePanel from './PeoplePanel';
 import PlacesPanel from './PlacesPanel';
@@ -52,6 +53,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 				<div className={activeView === 'photos' ? css.panelActive : css.panelHidden}>
 					<MainPanel contentWidth={contentWidth} />
 				</div>
+				{activeView === 'favorites' && (
+					<div className={css.panelActive}>
+						<FavoritesPanel contentWidth={contentWidth} />
+					</div>
+				)}
 				{activeView === 'albums' && (
 					<div className={css.panelActive}>
 						<AlbumsPanel contentWidth={contentWidth} />

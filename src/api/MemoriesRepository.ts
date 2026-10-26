@@ -143,6 +143,7 @@ export class MemoriesRepository implements PhotoRepository {
 		if (scope.albumId) return `?albums=${encodeURIComponent(scope.albumId)}`;
 		if (scope.personId) return `?${this.faceBackend}=${encodeURIComponent(scope.personId)}`;
 		if (scope.placeId) return `?places=${encodeURIComponent(scope.placeId)}`;
+		if (scope.favorites) return '?fav=1';
 		return '';
 	}
 
