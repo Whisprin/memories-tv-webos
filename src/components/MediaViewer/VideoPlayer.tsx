@@ -28,7 +28,7 @@ interface VideoPlayerProps {
 // at top-left when controls are visible (duplicate of our MediaControls close X).
 // We set a sentinel aria-label and hide via [aria-label="..."] in the LESS module —
 // targeting the CSS-Modules hash directly would break on every Sandstone rebuild.
-const HIDDEN_BACK_LABEL = 'immich-tv-internal-back-hidden';
+const HIDDEN_BACK_LABEL = 'memoriestv-internal-back-hidden';
 
 const PLAYER_PROPS = {
 	autoCloseTimeout: 5000,

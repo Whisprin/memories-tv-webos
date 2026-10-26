@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 import type {SlideshowOrder} from '../domain/slideshow';
+import {renameStorageKey} from '../utils/renameStorageKey';
 
 export const SLIDESHOW_INTERVALS_S = [5, 10, 30, 60, 300];
 
@@ -8,10 +9,11 @@ export interface SlideshowSettings {
 	order: SlideshowOrder;
 }
 
-const STORAGE_KEY = 'immich_slideshow';
+const STORAGE_KEY = 'memoriestv_slideshow';
 const DEFAULTS: SlideshowSettings = {intervalSeconds: 10, order: 'sequential'};
 
 function readSettings(): SlideshowSettings {
+	renameStorageKey('immich_slideshow', STORAGE_KEY);
 	try {
 		const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Partial<SlideshowSettings> | null;
 		return {

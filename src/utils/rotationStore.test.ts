@@ -20,7 +20,7 @@ describe('rotationStore', () => {
 		expect(restarted.getRotation('a')).toBe(180);
 		expect(restarted.rotateClockwise('a')).toBe(270);
 		expect(restarted.rotateClockwise('a')).toBe(0);
-		expect(JSON.parse(localStorage.getItem('immich_rotations')!)).toEqual({});
+		expect(JSON.parse(localStorage.getItem('memoriestv_rotations')!)).toEqual([]);
 	});
 
 	test('keeps only the most recently rotated assets', () => {
@@ -28,5 +28,22 @@ describe('rotationStore', () => {
 		for (let i = 0; i < 1001; i++) store.rotateClockwise(`asset-${i}`);
 		expect(store.getRotation('asset-0')).toBe(0);
 		expect(store.getRotation('asset-1000')).toBe(90);
+	});
+
+	test('trims the oldest rotations, also for numeric file ids', () => {
+		// The oldest rotation has the highest id, so numeric key order would trim '1' instead.
+		const store = freshStore();
+		store.rotateClockwise('99999');
+		for (let i = 1; i <= 1000; i++) store.rotateClockwise(String(i));
+		const restarted = freshStore();
+		expect(restarted.getRotation('99999')).toBe(0);
+		expect(restarted.getRotation('1')).toBe(90);
+		expect(restarted.getRotation('1000')).toBe(90);
+	});
+
+	test('reads rotations saved by earlier versions', () => {
+		localStorage.setItem('immich_rotations', JSON.stringify({'42': 270}));
+		expect(freshStore().getRotation('42')).toBe(270);
+		expect(localStorage.getItem('immich_rotations')).toBeNull();
 	});
 });

@@ -1,13 +1,3 @@
-// Immich servers before v3 send asset durations as "H:MM:SS.mmm" strings; v3+ sends
-// milliseconds. Normalize both to seconds at the API boundary.
-export function toDurationSeconds(duration: string | number | null | undefined): number | null {
-	if (duration == null) return null;
-	if (typeof duration === 'number') return duration / 1000;
-	const [hStr, mStr, sStr] = duration.split(':');
-	if (!hStr || !mStr || !sStr) return null;
-	return parseInt(hStr, 10) * 3600 + parseInt(mStr, 10) * 60 + parseFloat(sStr);
-}
-
 export function formatDuration(durationSeconds: number): string {
 	const total = Math.floor(durationSeconds);
 	const hours = Math.floor(total / 3600);

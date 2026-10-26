@@ -5,8 +5,7 @@ const dayKey = (isoDate: string): string => isoDate.slice(0, 10);
 // 'YYYY-MM' of an asset localDateTime or a bucket timeBucket ('YYYY-MM-01').
 export const monthKey = (isoDate: string): string => isoDate.slice(0, 7);
 
-// Day buckets are sorted by `order`; within-day order is preserved from the input array
-// (Immich pre-sorts album assets by its `order` preference, so insertion order is already correct).
+// Day buckets are sorted by `order`; within a day, assets keep the order the server sent them in.
 export function groupAssetsByDay(assets: TimelineAsset[], order: AssetOrder = 'desc'): DayGroup[] {
 	const dayMap = new Map<string, TimelineAsset[]>();
 	for (const asset of assets) {
