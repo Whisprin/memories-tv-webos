@@ -12,5 +12,6 @@
 	"disableBackHistoryAPI": true,
 	"vendorExtension": {
 		"allowCrossDomain": true
-	}
+	},
+	"requiredACG": []
 }
