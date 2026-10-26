@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {platformBack} from '@enact/webos/application';
 
 interface UseWebOSKeysOptions {
 	onBack?: () => void;
@@ -67,9 +68,9 @@ let bridgeInstalled = false;
 
 // Installs the global Back key listener once per app. On webOS, WAM dispatches the remote
 // Back as a DOM keydown event on window (we verified this via ares-inspect on a real TV).
-// If our handler calls preventDefault, WAM suppresses its default "Close app?" dialog and
-// the press is consumed by the app. If no handler is on the back-stack — e.g. we're at the
-// root view — we let WAM proceed and the user exits the app naturally.
+// The topmost handler on the back-stack consumes the press. If none is registered (the home
+// screen, with nothing open), the app exits through platformBack(): appinfo.json sets
+// disableBackHistoryAPI, so webOS hands every Back press to the app and never closes it by itself.
 function ensureBridgeInstalled(): void {
 	if (bridgeInstalled || typeof window === 'undefined') return;
 	bridgeInstalled = true;
@@ -79,13 +80,12 @@ function ensureBridgeInstalled(): void {
 		(event: KeyboardEvent) => {
 			if (!isBackKey(event)) return;
 			if (event.keyCode === BACKSPACE_KEYCODE && isEditingText(event.target)) return;
-			if (fireTopBack()) {
-				event.preventDefault();
-				// stopImmediatePropagation (not stopPropagation) so sibling window-level listeners
-				// don't all fire the same back action — otherwise an album-and-viewer combo would
-				// pop both layers on a single press.
-				event.stopImmediatePropagation();
-			}
+			// stopImmediatePropagation (not stopPropagation) so sibling window-level listeners
+			// don't all fire the same back action — otherwise an album-and-viewer combo would
+			// pop both layers on a single press.
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			if (!fireTopBack()) platformBack();
 		},
 		{capture: true}
 	);

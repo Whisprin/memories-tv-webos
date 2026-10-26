@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {SIDEBAR_WIDTH} from '../utils/constants';
 import {createSpotlightContainer} from '../utils/spotlight';
+import {useWebOSKeys} from '../hooks/useWebOSKeys';
 import {NavigationRail} from '../components/NavigationRail/NavigationRail';
 import MainPanel from './MainPanel';
 import AlbumsPanel from './AlbumsPanel';
@@ -19,6 +20,11 @@ const ViewContainer = createSpotlightContainer({enterTo: 'last-focused'});
 const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, accountGradient}) => {
 	const [activeView, setActiveView] = useState<View>('photos');
 	const [contentWidth, setContentWidth] = useState(window.innerWidth - SIDEBAR_WIDTH);
+
+	// Back on another tab returns to Photos; Back on Photos (nothing open) exits the app,
+	// see useWebOSKeys.
+	const showPhotos = useCallback(() => setActiveView('photos'), []);
+	useWebOSKeys({onBack: activeView === 'photos' ? undefined : showPhotos});
 
 	useEffect(() => {
 		const handleResize = () => setContentWidth(window.innerWidth - SIDEBAR_WIDTH);
