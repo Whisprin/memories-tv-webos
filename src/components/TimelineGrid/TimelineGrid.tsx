@@ -1,4 +1,4 @@
-import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {flushSync} from 'react-dom';
 import ri from '@enact/ui/resolution';
 import {AssetCard} from '../AssetCard';
@@ -40,10 +40,6 @@ interface TimelineGridProps {
 	groups?: DayGroup[];
 	contentWidth: number;
 	timeline?: TimelineGridTimeline;
-}
-
-export interface TimelineGridHandle {
-	startSlideshow: () => void;
 }
 
 interface SlideshowState {
@@ -102,7 +98,7 @@ function cardRange(layout: JustifiedLayoutResult | undefined, gridTop: number, w
 	return {firstCard, endCard};
 }
 
-export const TimelineGrid = forwardRef<TimelineGridHandle, TimelineGridProps>(({groups, contentWidth, timeline}, ref) => {
+export const TimelineGrid: React.FC<TimelineGridProps> = ({groups, contentWidth, timeline}) => {
 	const dayGroups = useMemo(
 		() => (timeline ? timeline.allBuckets.flatMap((bucket) => timeline.loadedMonths.get(bucket.timeBucket) ?? []) : groups ?? EMPTY_GROUPS),
 		[groups, timeline]
@@ -280,8 +276,6 @@ export const TimelineGrid = forwardRef<TimelineGridHandle, TimelineGridProps>(({
 
 	const viewerPosition = useViewerPosition(timeline, flatAssets, viewer.state?.assetIndex ?? -1);
 
-	useImperativeHandle(ref, () => ({startSlideshow: () => setSlideshow({start: null, fromViewer: false})}), []);
-
 	const handleStartSlideshow = useCallback(() => {
 		setSlideshow({start: viewer.state ? flatAssets[viewer.state.assetIndex] ?? null : null, fromViewer: true});
 		// The viewer's capture-phase key handlers would otherwise preempt the slideshow's.
@@ -373,6 +367,6 @@ export const TimelineGrid = forwardRef<TimelineGridHandle, TimelineGridProps>(({
 			)}
 		</>
 	);
-});
+};
 
 TimelineGrid.displayName = 'TimelineGrid';
