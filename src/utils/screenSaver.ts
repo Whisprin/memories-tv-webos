@@ -1,7 +1,7 @@
 import LS2Request from '@enact/webos/LS2Request';
 
 const SERVICE = 'luna://com.webos.service.tvpower/power';
-const CLIENT_NAME = 'com.wisp.memoriestv.slideshow';
+const CLIENT_NAME = 'eu.whisprin.memoriestv.slideshow';
 const ignore = () => {};
 // A refused call (for example denied by ACG enforcement, see appinfo.json requiredACG) used to
 // pass silently; log it so it shows up in the Web Inspector.

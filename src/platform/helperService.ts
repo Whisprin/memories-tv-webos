@@ -1,6 +1,6 @@
 import LS2Request from '@enact/webos/LS2Request';
 
-// Client for the app's own JS service (service/service.js, com.wisp.memoriestv.service).
+// Client for the app's own JS service (service/service.js, eu.whisprin.memoriestv.service).
 // It does two things the web app can't:
 // - loginFlowInit: starts Nextcloud Login Flow v2 with User-Agent "Memories TV", which
 //   Nextcloud uses as the app password's name (fetch() can't set User-Agent).
@@ -8,7 +8,7 @@ import LS2Request from '@enact/webos/LS2Request';
 //   <img src> / <video src> can load Memories media. Previews requested within a few ms
 //   are batched into one multipreview upstream; video passes Range through for seeking.
 
-const SERVICE = 'luna://com.wisp.memoriestv.service';
+const SERVICE = 'luna://eu.whisprin.memoriestv.service';
 const CALL_TIMEOUT_MS = 20000;
 
 export const hasHelperService = (): boolean =>

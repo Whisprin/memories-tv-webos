@@ -1,7 +1,7 @@
 {
-	"id": "com.wisp.memoriestv",
+	"id": "eu.whisprin.memoriestv",
 	"version": "0.9.0",
-	"vendor": "wisp",
+	"vendor": "Whisprin",
 	"type": "web",
 	"main": "index.html",
 	"title": "Memories TV",

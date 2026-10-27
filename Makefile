@@ -1,5 +1,5 @@
 VERSION := $(shell node -p "require('./package.json').version")
-APP_ID := com.wisp.memoriestv
+APP_ID := eu.whisprin.memoriestv
 DEVICE ?= LG_TV
 
 pack:

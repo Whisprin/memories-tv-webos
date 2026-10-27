@@ -1,5 +1,5 @@
 {
-  "name": "com.wisp.memoriestv.service",
+  "name": "eu.whisprin.memoriestv.service",
   "version": "0.9.0",
   "description": "Memories TV helper service: starts the Nextcloud login flow with the app's own name",
   "main": "service.js"

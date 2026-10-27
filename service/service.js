@@ -25,7 +25,7 @@ var url = require('url');
 var nodeCrypto = require('crypto');
 var Buffer = require('buffer').Buffer;
 
-var SERVICE_ID = 'com.wisp.memoriestv.service';
+var SERVICE_ID = 'eu.whisprin.memoriestv.service';
 var CLIENT_NAME = 'Memories TV'; // shown in Nextcloud → Settings → Security
 var TIMEOUT_MS = 15000;
 

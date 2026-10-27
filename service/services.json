@@ -1,9 +1,9 @@
 {
-  "id": "com.wisp.memoriestv.service",
+  "id": "eu.whisprin.memoriestv.service",
   "description": "Memories TV helper service",
   "services": [
     {
-      "name": "com.wisp.memoriestv.service",
+      "name": "eu.whisprin.memoriestv.service",
       "description": "Starts Nextcloud Login Flow v2 with User-Agent \"Memories TV\""
     }
   ]
