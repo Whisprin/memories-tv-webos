@@ -7,8 +7,8 @@ export const GRID_HORIZONTAL_PADDING_PX = GRID_INSET_LEFT_PX + GRID_INSET_RIGHT_
 export const BUCKET_HEADER_HEIGHT_PX = 128;
 export const BUCKET_HEADER_MARGIN_PX = 40;
 // Runtime CSS px at FHD. Must match .rail width in NavigationRail.module.less,
-// which is authored in 4K-space px (360px there = 180 CSS px at FHD).
-export const SIDEBAR_WIDTH = 180;
+// which is authored in 4K-space px (480px there = 240 CSS px at FHD).
+export const SIDEBAR_WIDTH = 240;
 export const NAVIGATION_RAIL_ID = 'navigation-rail';
 // Authored 4K-space px (ri.scale(240) renders a 120 CSS px rail at FHD). Must match
 // .scrubberHost width in DateScrubber.module.less — TimelineGrid subtracts it from gridWidth.

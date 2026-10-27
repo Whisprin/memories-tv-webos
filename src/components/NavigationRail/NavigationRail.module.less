@@ -6,14 +6,15 @@
 // (position:fixed z-index:1000 inside ViewContainer) free to overlay it.
 // Width is fixed (no focus-driven expand): animating `width` reflows the whole grid on
 // every frame, which stutters on TV hardware. Authored px are 4K-space (postcss-ri),
-// so 360px renders 180 CSS px at FHD — keep in sync with SIDEBAR_WIDTH (constants.ts).
+// so 480px renders 240 CSS px at FHD — keep in sync with SIDEBAR_WIDTH (constants.ts).
+// 240 leaves the labels about 150 CSS px, room for the longest ("On this day", "Favourites").
 .rail {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   flex-shrink: 0;
-  width: 360px;
-  min-width: 360px;
+  width: 480px;
+  min-width: 480px;
   height: 100%;
   // Transparent so the rail shares the layout backdrop; the hairline is the only separator.
   background: transparent;
@@ -83,9 +84,13 @@
 }
 
 .label {
+  min-width: 0;
   margin-left: 12px;
   font-size: var(--font-body);
   white-space: nowrap;
+  // A label that ever outgrows the rail ends in "…" instead of being cut mid-letter.
+  overflow: hidden;
+  text-overflow: ellipsis;
   pointer-events: none;
 }
 
