@@ -19,7 +19,7 @@
   <img src="docs/timeline.jpg" width="900" alt="Memories TV showing the timeline: the navigation rail on the left, a justified grid of photos and videos with RAW and duration badges, and the date scrubber on the right">
 </p>
 
-Memories TV is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) by Quentin Jean-Amans. The TV interface is theirs; the data layer, sign-in and media handling were replaced to talk to Nextcloud Memories instead of Immich.
+Memories TV started as a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) by Quentin Jean-Amans. Its TV interface was the starting point and has been reworked since; the data layer, sign-in and media handling were replaced to talk to Nextcloud Memories instead of Immich.
 
 ## ✨ Features
 
