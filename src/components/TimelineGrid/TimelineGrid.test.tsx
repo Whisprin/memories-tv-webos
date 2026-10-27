@@ -2,9 +2,11 @@ import React from 'react';
 import {act, fireEvent, render, screen} from '@testing-library/react';
 import ri from '@enact/ui/resolution';
 import {TimelineGrid} from './TimelineGrid';
+import {useTimelineViewportFocus} from '../../hooks/useTimelineViewportFocus';
 import type {DayGroup, TimelineAsset, TimelineBucket} from '../../domain/types';
 
 let scrubberProps: {activeIndex: number; onJump: (timeBucket: string) => void} | undefined;
+const scrubberIds: string[] = [];
 let mockLayout: {
 	layoutMap: Map<string, unknown>;
 	heightMap: Map<string, number>;
@@ -13,8 +15,9 @@ let mockLayout: {
 };
 
 jest.mock('../DateScrubber/DateScrubber', () => ({
-	DateScrubber: (props: {activeIndex: number; onJump: (timeBucket: string) => void}) => {
+	DateScrubber: (props: {spotlightId: string; activeIndex: number; onJump: (timeBucket: string) => void}) => {
 		scrubberProps = props;
+		scrubberIds.push(props.spotlightId);
 		return <output data-testid="active-bucket">{props.activeIndex}</output>;
 	},
 }));
@@ -97,9 +100,28 @@ const renderedIds = () => screen.queryAllByTestId('asset').map((card) => card.te
 
 beforeEach(() => {
 	scrubberProps = undefined;
+	scrubberIds.length = 0;
 	mockCardStyles.clear();
 	window.innerHeight = VIEWPORT_HEIGHT;
 	mockLayout = layoutFor(new Map(), 0);
+});
+
+describe('TimelineGrid date scrubber', () => {
+	test('each grid gives its scrubber its own id, and Right at the grid edge targets it', () => {
+		const focusHook = useTimelineViewportFocus as jest.Mock;
+		focusHook.mockClear();
+		render(
+			<>
+				<TimelineGrid contentWidth={1920} timeline={makeTimeline()} />
+				<TimelineGrid contentWidth={1920} timeline={makeTimeline()} />
+			</>
+		);
+		const ids = [...new Set(scrubberIds)];
+		expect(ids).toHaveLength(2);
+		ids.forEach((id) => expect(id).toMatch(/^date-scrubber-[A-Za-z0-9_-]+$/));
+		const edgeIds = new Set(focusHook.mock.calls.map(([options]) => options.rightEdgeSpotlightId));
+		expect(edgeIds).toEqual(new Set(ids));
+	});
 });
 
 describe('TimelineGrid month skeleton', () => {

@@ -1,11 +1,12 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {SpottableDiv} from '../../utils/spotlight';
 import {formatBucketMonth} from '../../utils/FormattingService';
-import {DATE_SCRUBBER_SPOTLIGHT_ID} from '../../utils/constants';
 import type {TimelineBucket} from '../../domain/types';
 import css from './DateScrubber.module.less';
 
 interface DateScrubberProps {
+	// unique per grid, see TimelineGrid
+	spotlightId: string;
 	buckets: TimelineBucket[];
 	bucketHeights: number[];
 	activeIndex: number;
@@ -75,7 +76,7 @@ export function buildScrubberMarkers(buckets: TimelineBucket[], bucketHeights: n
 }
 
 export const DateScrubber: React.FC<DateScrubberProps> = React.memo(
-	({buckets, bucketHeights, activeIndex, isLoading, hasError, onJump, onExit}) => {
+	({spotlightId, buckets, bucketHeights, activeIndex, isLoading, hasError, onJump, onExit}) => {
 		const railRef = useRef<HTMLDivElement>(null);
 		const [selectedIndex, setSelectedIndex] = useState(activeIndex);
 		const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -182,7 +183,7 @@ export const DateScrubber: React.FC<DateScrubberProps> = React.memo(
 			<div ref={railRef} className={css.scrubberHost}>
 				<SpottableDiv
 					className={css.scrubber}
-					spotlightId={DATE_SCRUBBER_SPOTLIGHT_ID}
+					spotlightId={spotlightId}
 					role="scrollbar"
 					aria-orientation="vertical"
 					aria-valuemin={1}

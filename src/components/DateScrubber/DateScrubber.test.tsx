@@ -40,6 +40,7 @@ describe('DateScrubber', () => {
 		const onExit = jest.fn();
 		render(
 			<DateScrubber
+				spotlightId="date-scrubber-test"
 				buckets={buckets}
 				bucketHeights={[100, 300, 100]}
 				activeIndex={0}

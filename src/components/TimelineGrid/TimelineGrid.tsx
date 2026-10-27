@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {flushSync} from 'react-dom';
 import ri from '@enact/ui/resolution';
 import {AssetCard} from '../AssetCard';
@@ -13,6 +13,7 @@ import {useViewerPosition} from '../../hooks/useViewerPosition';
 import {focusTimelineViewport, useTimelineViewportFocus} from '../../hooks/useTimelineViewportFocus';
 import {monthKey} from '../../domain/transforms';
 import {createSpotlightContainer} from '../../utils/spotlight';
+import {spotlightSafe} from '../../utils/spotlightId';
 import type {JustifiedLayoutResult} from '../../utils/justifiedLayout';
 import type {SlideshowSource} from '../../domain/slideshow';
 import {
@@ -111,10 +112,14 @@ export const TimelineGrid: React.FC<TimelineGridProps> = ({groups, contentWidth,
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const gridWidth = Math.max(0, contentWidth - (timeline ? ri.scale(DATE_SCRUBBER_WIDTH_PX) : 0));
 
+	// One id per grid: the Timeline stays mounted (hidden) while an album, person or place grid is
+	// open, and a shared id would send Right from that grid to the hidden Timeline's scrubber.
+	const scrubberSpotlightId = `${DATE_SCRUBBER_SPOTLIGHT_ID}-${spotlightSafe(useId())}`;
+
 	useTimelineViewportFocus({
 		enabled: !viewer.state && !slideshow,
 		viewportRef: scrollRef,
-		rightEdgeSpotlightId: timeline ? DATE_SCRUBBER_SPOTLIGHT_ID : undefined,
+		rightEdgeSpotlightId: timeline ? scrubberSpotlightId : undefined,
 	});
 
 	const {layoutMap, heightMap, bucketHeights, bucketOffsets} = useTimelineLayout({
@@ -336,6 +341,7 @@ export const TimelineGrid: React.FC<TimelineGridProps> = ({groups, contentWidth,
 					</ScrollContainer>
 					{timeline && timeline.allBuckets.length > 0 && (
 						<DateScrubber
+							spotlightId={scrubberSpotlightId}
 							buckets={timeline.allBuckets}
 							bucketHeights={bucketHeights}
 							activeIndex={activeBucketIndex}

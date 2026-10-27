@@ -13,4 +13,5 @@ export const NAVIGATION_RAIL_ID = 'navigation-rail';
 // Authored 4K-space px (ri.scale(240) renders a 120 CSS px rail at FHD). Must match
 // .scrubberHost width in DateScrubber.module.less — TimelineGrid subtracts it from gridWidth.
 export const DATE_SCRUBBER_WIDTH_PX = 240;
+// prefix: each timeline grid adds its own suffix
 export const DATE_SCRUBBER_SPOTLIGHT_ID = 'date-scrubber';
