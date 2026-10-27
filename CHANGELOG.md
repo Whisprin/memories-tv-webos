@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 — 2026-10-27
+
+Installs over 1.1.0; accounts and settings are kept.
 
 ### Added
 - **4K** button in the photo viewer: shows the photo, and up to 49 after it, in the TV's own Media Player at the panel's full resolution (the app itself is drawn at 1920×1080). Back returns to the app. RAW photos are shown as Memories' converted JPEG, whose colours can look off.
