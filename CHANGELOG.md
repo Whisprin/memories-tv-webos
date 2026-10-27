@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Info** button in the photo viewer: a panel with the photo's date, place, people, tags, camera and exposure, and file details, as in Memories' info sidebar. Back or Info closes it.
+
 ## 1.0.0 — 2026-10-27
 
 First stable release.
