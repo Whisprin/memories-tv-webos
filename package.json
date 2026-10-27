@@ -43,7 +43,7 @@
 		"publicUrl": "./"
 	},
 	"browserslist": [
-		"Chrome >= 132"
+		"Chrome >= 94"
 	],
 	"eslintConfig": {
 		"extends": "enact-proxy"
