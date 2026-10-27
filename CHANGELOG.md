@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- The title no longer jumps when an album, person, place, tag or folder opens: it sits exactly where the page title was.
+
 ## 1.1.0 — 2026-10-27
 
 Installs over 1.0.0; accounts and settings are kept.
