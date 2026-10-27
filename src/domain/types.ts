@@ -11,6 +11,9 @@ export interface TimelineAsset {
 	// a RAW file, or a photo with RAW files of the same name stacked under it (Memories'
 	// "Stack RAW files with same name")
 	isRaw?: boolean;
+	// the file's own MIME type and name, when the server sends them
+	mimeType?: string;
+	fileName?: string;
 	city?: string | null;
 	country?: string | null;
 }

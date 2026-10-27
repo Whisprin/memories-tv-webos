@@ -19,14 +19,14 @@ export interface PhotoRepository {
 
 	searchRandomImages(scope: TimelineScope, size: number): Promise<TimelineAsset[]>;
 
-	// TEST (feature/tv-photo-viewer): image sources for the hand-off probe; optional so fakes needn't have it.
-	handoffSources?(assetId: string): Array<{label: string; url: string; mime: string}>;
-
 	// File, camera, place, people and tags of one photo (the viewer's info panel).
 	getAssetDetails(assetId: string): Promise<AssetDetails>;
 
 	thumbnailUrl(assetId: string): string;
 	previewUrl(assetId: string): string;
+	// The full-resolution image for the TV's own photo viewer (Show in 4K), as a JPEG or a
+	// format the TV decodes.
+	fullResolutionUrl(asset: TimelineAsset): string;
 	videoPlaybackUrl(assetId: string): string;
 	faceUrl(personId: string): string;
 }

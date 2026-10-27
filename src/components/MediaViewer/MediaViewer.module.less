@@ -77,3 +77,17 @@
 	height: 100vw;
 	flex-shrink: 0;
 }
+
+// "Couldn't open the TV's photo viewer" (Show in 4K), above the action bar.
+.notice {
+	position: absolute;
+	left: 50%;
+	bottom: 300px;
+	transform: translateX(-50%);
+	padding: 20px 40px;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.75);
+	color: #fff;
+	font-size: var(--font-caption);
+	z-index: 1;
+}

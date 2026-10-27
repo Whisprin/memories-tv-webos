@@ -418,3 +418,19 @@ describe('photo details', () => {
 		expect(memories).toHaveBeenCalledWith('/image/info/42?tags=1&clusters=recognize');
 	});
 });
+
+describe('Show in 4K', () => {
+	const asset = (id: string, mimeType?: string) => ({id, type: 'IMAGE' as const, ratio: 1, localDateTime: '2026-03-01T00:00:00.000Z', durationSeconds: null, mimeType});
+
+	test('JPEG and HEIC go as the original file, RAW as the JPEG Memories converts it to', () => {
+		const repo = makeRepo(jest.fn());
+		expect(repo.fullResolutionUrl(asset('7', 'image/jpeg'))).toMatch(/^proxy:\d+\/api\/stream\/7$/);
+		expect(repo.fullResolutionUrl(asset('8', 'image/heic'))).toMatch(/\/api\/stream\/8$/);
+		expect(repo.fullResolutionUrl(asset('9', 'image/x-dcraw'))).toMatch(/\/api\/image\/decodable\/9$/);
+		expect(repo.fullResolutionUrl(asset('10'))).toMatch(/\/api\/stream\/10$/);
+	});
+
+	test('photos carry their MIME type and file name', () => {
+		expect(photoToAsset({fileid: 1, dayid: MAR_1, mimetype: 'image/x-dcraw', basename: 'IMG_1.dng'})).toMatchObject({mimeType: 'image/x-dcraw', fileName: 'IMG_1.dng', isRaw: true});
+	});
+});

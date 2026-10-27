@@ -72,8 +72,6 @@ interface MediaProxyReply extends LunaReply {
 	port: number;
 	ports?: number[];
 	token: string;
-	// TEST (feature/tv-photo-viewer)
-	serviceDir?: string;
 }
 
 export interface MediaProxy {
@@ -83,9 +81,6 @@ export interface MediaProxy {
 	memoriesUrl(path: string, shard?: number): string;
 	// Batched preview. a=0 crops to x × y, a=1 keeps the aspect ratio within x × y.
 	previewUrl(fileid: number, x: number, y: number, a: 0 | 1): string;
-	// TEST (feature/tv-photo-viewer): files packaged with the service, over HTTP and on disk.
-	staticUrl(name: string): string;
-	readonly serviceDir?: string;
 	stop(): void;
 }
 
@@ -111,8 +106,6 @@ export function startMediaProxy(credentials: ProxyCredentials): Promise<MediaPro
 					token: res.token,
 					memoriesUrl: (path, shard = 0) => `${base(shard)}/memories/${path.replace(/^\/+/, '')}`,
 					previewUrl: (fileid, x, y, a) => `${base(fileid)}/batch/preview/${fileid}?x=${x}&y=${y}&a=${a}`,
-					staticUrl: (name) => `${base(0)}/static/${name}`,
-					serviceDir: res.serviceDir,
 					stop: () => request?.cancel(),
 				});
 			},

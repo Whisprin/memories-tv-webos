@@ -27,13 +27,13 @@ interface MediaControlsProps {
 	onStartSlideshow: () => void;
 	infoOpen: boolean;
 	onToggleInfo: () => void;
-	// TEST (feature/tv-photo-viewer)
-	onOpenHandoffTest: () => void;
+	// Shows the photo in the TV's own Media Player, at the panel's full resolution.
+	onShowIn4K: () => void;
 	onActionBarFocusChange: (focused: boolean) => void;
 }
 
 export const MediaControls: React.FC<MediaControlsProps> = React.memo(
-	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, infoOpen, onToggleInfo, onOpenHandoffTest, onActionBarFocusChange}) => {
+	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, infoOpen, onToggleInfo, onShowIn4K, onActionBarFocusChange}) => {
 		const handleBarFocus = useCallback(() => onActionBarFocusChange(true), [onActionBarFocusChange]);
 		const handleBarBlur = useCallback(
 			(event: React.FocusEvent<HTMLDivElement>) => {
@@ -65,10 +65,12 @@ export const MediaControls: React.FC<MediaControlsProps> = React.memo(
 					<div className={chrome.bottomBar}>
 						<ActionBar spotlightId={ACTION_BAR_SPOTLIGHT_ID} className={chrome.actionBar} onFocus={handleBarFocus} onBlur={handleBarBlur}>
 							<RoundButton icon="info" tooltipText={infoOpen ? 'Hide info' : 'Info'} onClick={onToggleInfo} />
+							<RoundButton tooltipText="Show in 4K" onClick={onShowIn4K}>
+								4K
+							</RoundButton>
 							<RoundButton icon="rotate" tooltipText="Rotate" onClick={onRotate} />
 							<RoundButton icon="play" tooltipText="Slideshow" onClick={onStartSlideshow} />
 							<RoundButton icon="closex" tooltipText="Close" onClick={onClose} />
-							<RoundButton icon="ellipsis" tooltipText="TV viewer test" onClick={onOpenHandoffTest} />
 						</ActionBar>
 					</div>
 				)}

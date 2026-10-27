@@ -7,7 +7,7 @@ import {createSpotlightContainer, forceFocus, SpottableDiv} from '../../utils/sp
 import type {TimelineAsset} from '../../domain/types';
 import {MediaControls, ACTION_BAR_SPOTLIGHT_ID} from './MediaControls';
 import {InfoPanel} from './InfoPanel';
-import {HandoffTest} from './HandoffTest';
+import {openInTvPhotoViewer, type TvPhoto} from '../../platform/tvPhotoViewer';
 import {VideoPlayer, VideoPlayerApi} from './VideoPlayer';
 import css from './MediaViewer.module.less';
 
@@ -35,6 +35,9 @@ const focusActionBar = () => forceFocus(ACTION_BAR_SPOTLIGHT_ID);
 // How long a video's overlay (date, position, arrows, close) stays up when it opens; the same
 // delay photos use before their controls fade.
 const VIDEO_OVERLAY_INTRO_MS = 4000;
+// Show in 4K hands over at most this many photos, so the player starts quickly.
+const TV_VIEWER_MAX_PHOTOS = 50;
+const TV_VIEWER_ERROR_MS = 4000;
 
 export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, totalCount, currentIndex, position, onClose, onNavigate, onStartSlideshow}) => {
 	const repository = useRepository();
@@ -55,17 +58,36 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 	const [infoOpen, setInfoOpen] = useState(false);
 	const toggleInfo = useCallback(() => setInfoOpen((open) => !open), []);
 	const showInfo = infoOpen && !isVideo;
-	// TEST (feature/tv-photo-viewer): while the probe is open it owns the keys.
-	const [handoffOpen, setHandoffOpen] = useState(false);
-	const openHandoff = useCallback(() => setHandoffOpen(true), []);
-	const closeHandoff = useCallback(() => setHandoffOpen(false), []);
+
+	// Show in 4K: this photo and the ones after it go to the TV's Media Player, which pages
+	// through them itself. Videos are left out.
+	const [tvViewerFailed, setTvViewerFailed] = useState(false);
+	const showIn4K = useCallback(() => {
+		const photos: TvPhoto[] = [];
+		for (let i = currentIndex; i < totalCount && photos.length < TV_VIEWER_MAX_PHOTOS; i++) {
+			const item = getAssetAt(i);
+			if (!item) break; // not loaded yet
+			if (item.type === 'VIDEO') continue;
+			photos.push({url: repository.fullResolutionUrl(item), fileName: item.fileName ?? `${item.id}.jpg`});
+		}
+		if (photos.length === 0) return;
+		openInTvPhotoViewer(photos).catch((error: unknown) => {
+			console.warn('[MediaViewer] could not open the TV photo viewer', error);
+			setTvViewerFailed(true);
+		});
+	}, [currentIndex, totalCount, getAssetAt, repository]);
+	useEffect(() => {
+		if (!tvViewerFailed) return undefined;
+		const timer = window.setTimeout(() => setTvViewerFailed(false), TV_VIEWER_ERROR_MS);
+		return () => window.clearTimeout(timer);
+	}, [tvViewerFailed]);
 	const [rotation, rotate] = useAssetRotation(isVideo ? undefined : asset?.id);
 	const controlsRef = useRef<HTMLDivElement>(null);
 
 	// Auto-hide here is for still images. Videos can't use it: while hidden it swallows OK, which
 	// Sandstone VideoPlayer needs for play/pause and its transport bar. A video's overlay instead
 	// follows that bar (see videoOverlayVisible below).
-	const {visible: controlsVisible, show: showControls, hide: hideControls} = useAutoHideControls({enabled: !isVideo && !handoffOpen, controlsRef});
+	const {visible: controlsVisible, show: showControls, hide: hideControls} = useAutoHideControls({enabled: !isVideo, controlsRef});
 	const inActionBar = !isVideo && controlsVisible && actionBarFocused;
 
 	// The bar faded out under an idle focus: hand it back to the stage rather than leave it on
@@ -122,7 +144,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 		onClose();
 	}, [showInfo, videoControlsOpen, onClose]);
 
-	useWebOSKeys(handoffOpen ? {} : {
+	useWebOSKeys({
 		onBack: handleBack,
 		// Left/right page between media, except inside the action bar (Spotlight moves between
 		// its buttons) and while the video transport bar is open (Sandstone seeks).
@@ -174,12 +196,10 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 			</div>
 			{!isVideo && <SpottableDiv spotlightId={STAGE_SPOTLIGHT_ID} className={css.stage} onClick={handleStageClick} />}
 			{showInfo && <InfoPanel asset={asset} />}
-			{handoffOpen && !isVideo && (
-				<HandoffTest
-					asset={asset}
-					nextAssets={[1, 2, 3, 4].map((n) => getAssetAt(currentIndex + n)).filter((a): a is TimelineAsset => !!a && a.type !== 'VIDEO')}
-					onClose={closeHandoff}
-				/>
+			{tvViewerFailed && (
+				<div className={css.notice} role="status">
+					Couldn&apos;t open the TV&apos;s photo viewer.
+				</div>
 			)}
 			<MediaControls
 				rootRef={controlsRef}
@@ -196,7 +216,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 				onStartSlideshow={onStartSlideshow}
 				infoOpen={showInfo}
 				onToggleInfo={toggleInfo}
-				onOpenHandoffTest={openHandoff}
+				onShowIn4K={showIn4K}
 				onActionBarFocusChange={setActionBarFocused}
 			/>
 		</ViewerContainer>

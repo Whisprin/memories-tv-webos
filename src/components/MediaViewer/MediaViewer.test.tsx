@@ -18,10 +18,17 @@ jest.mock('./VideoPlayer', () => ({
 
 jest.mock('@enact/sandstone/Button', () => ({
 	__esModule: true,
-	default: ({onClick, icon}: {onClick?: () => void; icon?: string}) => <button aria-label={icon} onClick={onClick} />,
+	default: ({onClick, icon, children}: {onClick?: () => void; icon?: string; children?: React.ReactNode}) => (
+		<button aria-label={icon} onClick={onClick}>
+			{children}
+		</button>
+	),
 }));
 
 jest.mock('../MediaInfo/MediaInfo', () => ({MediaInfo: () => <span>info</span>}));
+
+const mockOpenInTv = jest.fn();
+jest.mock('../../platform/tvPhotoViewer', () => ({openInTvPhotoViewer: (photos: unknown) => mockOpenInTv(photos)}));
 
 const video: TimelineAsset = {id: '7', type: 'VIDEO', ratio: 16 / 9, localDateTime: '2026-03-01T12:00:00.000Z', durationSeconds: 30};
 const photo: TimelineAsset = {...video, id: '8', type: 'IMAGE', durationSeconds: null};
@@ -31,6 +38,7 @@ const repository = {
 	previewUrl: (id: string) => `preview:${id}`,
 	videoPlaybackUrl: (id: string) => `video:${id}`,
 	getAssetDetails,
+	fullResolutionUrl: (a: TimelineAsset) => `full:${a.id}`,
 } as unknown as PhotoRepository;
 
 const renderViewer = (asset: TimelineAsset, onClose: () => void = () => {}) =>
@@ -145,5 +153,39 @@ describe('MediaViewer info panel', () => {
 
 		pressBack();
 		expect(onClose).toHaveBeenCalled();
+	});
+});
+
+describe('MediaViewer Show in 4K', () => {
+	const assets: TimelineAsset[] = [
+		{...photo, id: '1', fileName: 'IMG_1.jpg'},
+		{...video, id: '2'},
+		{...photo, id: '3', fileName: 'IMG_3.dng'},
+		{...photo, id: '4'},
+	];
+
+	test('hands this photo and the following ones, without videos, to the TV photo viewer', () => {
+		mockOpenInTv.mockReset().mockResolvedValue(undefined);
+		render(
+			<QueryClientProvider client={new QueryClient()}>
+				<RepositoryProvider repository={repository}>
+					<MediaViewer
+						getAssetAt={(i) => assets[i] ?? null}
+						totalCount={assets.length}
+						currentIndex={0}
+						position="1 / 4"
+						onClose={() => {}}
+						onNavigate={() => {}}
+						onStartSlideshow={() => {}}
+					/>
+				</RepositoryProvider>
+			</QueryClientProvider>,
+		);
+		fireEvent.click(screen.getByRole('button', {name: '4K'}));
+		expect(mockOpenInTv).toHaveBeenCalledWith([
+			{url: 'full:1', fileName: 'IMG_1.jpg'},
+			{url: 'full:3', fileName: 'IMG_3.dng'},
+			{url: 'full:4', fileName: '4.jpg'},
+		]);
 	});
 });

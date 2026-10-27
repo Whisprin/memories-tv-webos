@@ -14,7 +14,6 @@
 		"allowCrossDomain": true
 	},
 	"requiredACG": [
-		"application.launcher",
-		"application.query"
+		"application.launcher"
 	]
 }
