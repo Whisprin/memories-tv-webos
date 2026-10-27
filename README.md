@@ -64,7 +64,7 @@ Not yet: Explore, Map and Trash.
 
 There is no release or Homebrew Channel package yet. Build the app and install it on a TV in Developer Mode:
 
-1. Install [Node.js](https://nodejs.org/) 20 or newer, the [Enact CLI](https://enactjs.com/docs/developer-tools/cli/) and the [webOS CLI](https://webostv.developer.lge.com/develop/tools/cli-installation/):
+1. Install [Node.js](https://nodejs.org/) 24 or newer, the [Enact CLI](https://enactjs.com/docs/developer-tools/cli/) and the [webOS CLI](https://webostv.developer.lge.com/develop/tools/cli-installation/):
    ```bash
    npm install -g @enact/cli @webos-tools/cli
    ```
