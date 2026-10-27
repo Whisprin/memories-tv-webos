@@ -170,8 +170,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({initialUrl, onSubmit, onBack}
 							<li>Sign in to Nextcloud and choose Grant access.</li>
 							<li>This screen continues by itself.</li>
 						</ol>
-						<div className={css.label}>Or open this address on any device</div>
-						<div className={css.loginUrl}>{flow.login}</div>
 						{loginHost && loginHost !== serverHost ? (
 							<p className={css.warning}>
 								This link points to {loginHost}, not {serverHost}. If your phone can&apos;t open it, check

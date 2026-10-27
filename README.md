@@ -81,7 +81,7 @@ There is no release or Homebrew Channel package yet. Build the app and install i
 ## 🔑 Signing in
 
 1. Enter your Nextcloud address, for example `https://cloud.example.com` (include the subfolder if Nextcloud lives in one, such as `https://example.com/nextcloud`). The app checks that Memories is installed.
-2. Scan the QR code with your phone, sign in to Nextcloud and choose **Grant access**. The address under the code works on any device too.
+2. Scan the QR code with your phone, sign in to Nextcloud and choose **Grant access**.
 3. The TV continues by itself and opens your timeline.
 
 The app gets its own app password, listed as **Memories TV** under Nextcloud → **Settings → Security**. Revoking it there signs the TV out. Removing the account on the TV revokes it as well.
@@ -102,7 +102,7 @@ Memories isn't installed or enabled for your user, or the address is missing the
 
 ### The QR link opens the wrong address on my phone
 
-Nextcloud builds the sign-in link from its own configuration, `overwrite.cli.url` and `overwritehost` in `config.php`. If that names a host your phone can't reach, the TV shows a warning under the code. Fix those settings, or open the link manually with the right host.
+Nextcloud builds the sign-in link from its own configuration, `overwrite.cli.url` and `overwritehost` in `config.php`. If that names a host your phone can't reach, the TV shows a warning under the code. Fix those settings, then choose **Cancel** and sign in again for a new code.
 
 ### Videos show "Preview unavailable"
 

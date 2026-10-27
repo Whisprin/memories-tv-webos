@@ -94,7 +94,8 @@ describe('AuthForm', () => {
 		expect(mockDescribe).toHaveBeenCalledWith('https://cloud.example');
 		expect(mockStart).toHaveBeenCalledWith('https://cloud.example');
 		expect(screen.getByTestId('qr').getAttribute('data-value')).toBe(LOGIN_URL);
-		expect(screen.getByText(LOGIN_URL)).toBeTruthy();
+		// Only as the QR code: the link is too long to read or type from the TV.
+		expect(screen.queryByText(LOGIN_URL)).toBeNull();
 	});
 
 	test('explains when Memories is not found', async () => {
