@@ -22,6 +22,56 @@ interface MemoriesPhoto {
 	// datetaken as seconds, local wall-clock time stored as UTC
 	epoch?: number;
 	liveid?: string;
+	// file name, e.g. 'IMG_1234.jpg'
+	basename?: string;
+	mimetype?: string;
+}
+
+// Nextcloud's MIME type for camera RAW files (DNG, CR2, NEF, ARW, …), as Memories checks it.
+const MIME_RAW = 'image/x-dcraw';
+
+// A photo in a day, with any RAW files stacked under it.
+interface StackedPhoto {
+	photo: MemoriesPhoto;
+	hasRaw: boolean;
+}
+
+const withoutExtension = (name: string): string => {
+	const dot = name.lastIndexOf('.');
+	return dot > 0 ? name.slice(0, dot) : name;
+};
+
+// Memories' "Stack RAW files with same name", which its web app applies to each day after
+// loading it: a RAW file is hidden when a non-RAW photo of the same day has the same name
+// without extension, and that photo is marked as RAW. A RAW without such a partner stays.
+export function stackRawFiles(photos: MemoriesPhoto[]): StackedPhoto[] {
+	const raws = new Map<string, MemoriesPhoto[]>();
+	for (const p of photos) {
+		if (p.mimetype !== MIME_RAW || !p.basename || p.basename.startsWith('.')) continue;
+		let key = withoutExtension(p.basename);
+		if (key.includes('.ORIGINAL')) key = p.basename.split('.', 1)[0]!;
+		const id = `${p.dayid}/${key}`;
+		raws.set(id, [...(raws.get(id) ?? []), p]);
+	}
+	if (raws.size === 0) return photos.map((photo) => ({photo, hasRaw: false}));
+
+	const stacked = new Set<MemoriesPhoto>();
+	const result: StackedPhoto[] = [];
+	for (const p of photos) {
+		let hasRaw = false;
+		if (p.mimetype !== MIME_RAW && p.basename && !p.basename.startsWith('.')) {
+			const key = withoutExtension(p.basename);
+			const keys = key.includes('.') ? [key, key.split('.', 1)[0]!] : [key];
+			for (const k of keys) {
+				for (const raw of raws.get(`${p.dayid}/${k}`) ?? []) {
+					stacked.add(raw);
+					hasRaw = true;
+				}
+			}
+		}
+		result.push({photo: p, hasRaw});
+	}
+	return result.filter(({photo}) => !stacked.has(photo));
 }
 
 // GET /api/clusters/albums: the user's own albums and those shared with them.
@@ -72,6 +122,8 @@ interface MemoriesConfig {
 	systemtags_enabled?: boolean;
 	// the user's Folders root in Memories, '/' by default
 	folders_path?: string;
+	// "Stack RAW files with same name" in Memories' settings
+	stack_raw_files?: boolean;
 	// On this day: days either side of today's date to include (0 by default)
 	onthisday_day_range?: number;
 }
@@ -133,7 +185,7 @@ export function albumToAlbum(a: MemoriesAlbum): Album {
 	};
 }
 
-export function photoToAsset(p: MemoriesPhoto): TimelineAsset {
+export function photoToAsset(p: MemoriesPhoto, hasStackedRaw = false): TimelineAsset {
 	// The day comes from dayid so day grouping always matches the month buckets; epoch only
 	// adds the time of day.
 	const time = p.epoch ? new Date(p.epoch * 1000).toISOString().slice(10) : 'T00:00:00.000Z';
@@ -144,6 +196,7 @@ export function photoToAsset(p: MemoriesPhoto): TimelineAsset {
 		ratio: p.w && p.h ? p.w / p.h : 1,
 		localDateTime: dayIdToDate(p.dayid) + time,
 		durationSeconds: isVideo ? (p.video_duration ?? null) : null,
+		isRaw: hasStackedRaw || p.mimetype === MIME_RAW,
 	};
 }
 
@@ -205,8 +258,15 @@ export class MemoriesRepository implements PhotoRepository {
 		return all.filter((d) => ids.has(d.dayid));
 	}
 
-	private fetchDays(dayIds: number[], scope: TimelineScope, signal?: AbortSignal): Promise<MemoriesPhoto[]> {
-		return this.client.memories<MemoriesPhoto[]>(`/days${this.scopeQuery(scope)}`, {method: 'POST', body: JSON.stringify({dayIds}), signal}, 30000);
+	// The photos of some days as assets, with RAW files stacked when Memories is set to.
+	private async fetchDays(dayIds: number[], scope: TimelineScope, signal?: AbortSignal): Promise<TimelineAsset[]> {
+		const [photos, config] = await Promise.all([
+			this.client.memories<MemoriesPhoto[]>(`/days${this.scopeQuery(scope)}`, {method: 'POST', body: JSON.stringify({dayIds}), signal}, 30000),
+			// Without the config, photos still load, just unstacked.
+			this.loadConfig().catch((): MemoriesConfig => ({})),
+		]);
+		if (!config.stack_raw_files) return photos.map((p) => photoToAsset(p));
+		return stackRawFiles(photos).map(({photo, hasRaw}) => photoToAsset(photo, hasRaw));
 	}
 
 	public async getBuckets(scope: TimelineScope = MAIN_TIMELINE): Promise<TimelineBucket[]> {
@@ -226,8 +286,7 @@ export class MemoriesRepository implements PhotoRepository {
 		const days = await this.loadDays(scope);
 		const dayIds = days.filter((d) => dayIdToDate(d.dayid).slice(0, 7) === month).map((d) => d.dayid);
 		if (dayIds.length === 0) return [];
-		const photos = await this.fetchDays(dayIds, scope, signal);
-		return photos.map(photoToAsset);
+		return this.fetchDays(dayIds, scope, signal);
 	}
 
 	private loadAlbums(refresh = false): Promise<MemoriesAlbum[]> {
@@ -331,7 +390,7 @@ export class MemoriesRepository implements PhotoRepository {
 			picked.push(day.dayid);
 			photos += day.count;
 		}
-		const images = (await this.fetchDays(picked, scope)).filter((p) => !p.isvideo).map(photoToAsset);
+		const images = (await this.fetchDays(picked, scope)).filter((a) => a.type !== 'VIDEO');
 		for (let i = images.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
 			[images[i], images[j]] = [images[j]!, images[i]!];

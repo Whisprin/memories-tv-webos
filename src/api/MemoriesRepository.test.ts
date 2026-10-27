@@ -1,4 +1,4 @@
-import {MemoriesRepository, onThisDayIds, albumToAlbum, dayIdToDate, faceToPerson, photoToAsset, type MediaUrls} from './MemoriesRepository';
+import {MemoriesRepository, onThisDayIds, stackRawFiles, albumToAlbum, dayIdToDate, faceToPerson, photoToAsset, type MediaUrls} from './MemoriesRepository';
 import type {NextcloudClient} from './client';
 
 // 2026-03-01 is day 20513 since 1970-01-01.
@@ -29,6 +29,7 @@ describe('photoToAsset', () => {
 			ratio: 4000 / 3000,
 			localDateTime: '2026-03-01T14:30:00.000Z',
 			durationSeconds: null,
+			isRaw: false,
 		});
 	});
 
@@ -57,21 +58,22 @@ describe('MemoriesRepository', () => {
 	});
 
 	test('loads a month by fetching its days', async () => {
-		const memories = jest
-			.fn()
-			.mockResolvedValueOnce([
-				{dayid: APR_2, count: 1},
-				{dayid: MAR_31, count: 1},
-				{dayid: MAR_1, count: 1},
-			])
-			.mockResolvedValueOnce([
-				{fileid: 1, dayid: MAR_31},
-				{fileid: 2, dayid: MAR_1, isvideo: 1, video_duration: 5},
-			]);
+		const days = [
+			{dayid: APR_2, count: 1},
+			{dayid: MAR_31, count: 1},
+			{dayid: MAR_1, count: 1},
+		];
+		const photos = [
+			{fileid: 1, dayid: MAR_31},
+			{fileid: 2, dayid: MAR_1, isvideo: 1, video_duration: 5},
+		];
+		const memories = jest.fn((path: string, options?: RequestInit) =>
+			Promise.resolve(path === '/config' ? {} : options?.method === 'POST' ? photos : days)
+		);
 		const repo = makeRepo(memories);
 		await repo.getBuckets();
 		const assets = await repo.getBucketAssets('2026-03-01');
-		expect(memories).toHaveBeenLastCalledWith('/days', {method: 'POST', body: JSON.stringify({dayIds: [MAR_31, MAR_1]}), signal: undefined}, 30000);
+		expect(memories).toHaveBeenCalledWith('/days', {method: 'POST', body: JSON.stringify({dayIds: [MAR_31, MAR_1]}), signal: undefined}, 30000);
 		expect(assets.map((a) => a.id)).toEqual(['1', '2']);
 	});
 
@@ -92,14 +94,14 @@ describe('MemoriesRepository', () => {
 	});
 
 	test('random images come from sampled days and exclude videos', async () => {
-		const memories = jest
-			.fn()
-			.mockResolvedValueOnce([{dayid: MAR_1, count: 3}])
-			.mockResolvedValueOnce([
-				{fileid: 1, dayid: MAR_1},
-				{fileid: 2, dayid: MAR_1, isvideo: 1},
-				{fileid: 3, dayid: MAR_1},
-			]);
+		const photos = [
+			{fileid: 1, dayid: MAR_1},
+			{fileid: 2, dayid: MAR_1, isvideo: 1},
+			{fileid: 3, dayid: MAR_1},
+		];
+		const memories = jest.fn((path: string, options?: RequestInit) =>
+			Promise.resolve(path === '/config' ? {} : options?.method === 'POST' ? photos : [{dayid: MAR_1, count: 3}])
+		);
 		const images = await makeRepo(memories).searchRandomImages({}, 10);
 		expect(images.map((a) => a.id).sort()).toEqual(['1', '3']);
 	});
@@ -320,5 +322,56 @@ describe('on this day', () => {
 			{timeBucket: '2025-10-01', count: 4},
 			{timeBucket: '2019-10-01', count: 2},
 		]);
+	});
+});
+
+describe('RAW files', () => {
+	const RAW = 'image/x-dcraw';
+	const photo = (fileid: number, basename: string, mimetype: string, dayid = MAR_1) => ({fileid, dayid, basename, mimetype});
+
+	test('a RAW file is hidden under the photo of the same name and day, which is marked RAW', () => {
+		const stacked = stackRawFiles([
+			photo(1, '20261027_120000.jpg', 'image/jpeg'),
+			photo(2, '20261027_120000.dng', RAW),
+			photo(3, 'IMG_5.heic', 'image/heic'),
+			photo(4, 'IMG_5.DNG', RAW),
+			photo(5, 'lonely.dng', RAW),
+			photo(6, 'IMG_5.dng', RAW, MAR_31),
+			photo(7, 'plain.jpg', 'image/jpeg'),
+		]);
+		expect(stacked.map(({photo: p, hasRaw}) => [p.fileid, hasRaw])).toEqual([
+			[1, true],
+			[3, true],
+			[5, false],
+			[6, false],
+			[7, false],
+		]);
+	});
+
+	test('edited copies (name.edit.jpg) and .ORIGINAL RAWs stack too, without names nothing does', () => {
+		const stacked = stackRawFiles([
+			photo(1, 'IMG_7.edit.jpg', 'image/jpeg'),
+			photo(2, 'IMG_7.dng', RAW),
+			photo(3, 'IMG_8.jpg', 'image/jpeg'),
+			photo(4, 'IMG_8.ORIGINAL.dng', RAW),
+			{fileid: 5, dayid: MAR_1, mimetype: RAW},
+		]);
+		expect(stacked.map(({photo: p}) => p.fileid)).toEqual([1, 3, 5]);
+	});
+
+	const repoWith = (config: object, photos: object[]) =>
+		makeRepo(jest.fn((path: string, options?: RequestInit) =>
+			Promise.resolve(path === '/config' ? config : options?.method === 'POST' ? photos : [{dayid: MAR_1, count: photos.length}])
+		));
+	const pair = [photo(1, 'IMG_1.jpg', 'image/jpeg'), photo(2, 'IMG_1.dng', RAW)];
+
+	test('follows the Memories setting', async () => {
+		const on = repoWith({stack_raw_files: true}, pair);
+		await on.getBuckets();
+		expect((await on.getBucketAssets('2026-03-01')).map((a) => [a.id, a.isRaw])).toEqual([['1', true]]);
+
+		const off = repoWith({stack_raw_files: false}, pair);
+		await off.getBuckets();
+		expect((await off.getBucketAssets('2026-03-01')).map((a) => [a.id, a.isRaw])).toEqual([['1', false], ['2', true]]);
 	});
 });

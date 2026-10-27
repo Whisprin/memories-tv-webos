@@ -31,6 +31,7 @@ Memories TV is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-
   - **Places**: photos grouped by where they were taken.
   - **Tags**: Nextcloud's collaborative tags.
 - 🔍 **Full-screen viewer**: controls that fade away to leave the photo alone, and a rotate button for sideways shots (a local viewing preference: nothing is written to your server).
+- 📷 **RAW files**: a RAW badge on RAW photos. With Memories' *Stack RAW files with same name* on, a RAW file is hidden behind the JPG or HEIC of the same name, which gets the badge.
 - ▶️ **Videos**: played from the original file, with seeking. No transcoding needed on the server.
 - 🎞️ **Slideshow**: crossfades, shuffle, adjustable interval, and the TV screen saver stays away while it runs.
 - 📱 **Sign in with your phone**: scan a QR code and approve the TV in your phone's browser. Your password is never typed on the TV, and two-factor authentication and single sign-on work as usual.
