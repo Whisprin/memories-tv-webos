@@ -37,7 +37,10 @@
 
 .welcomeSub {
 	color: @text-muted;
-	max-width: 26rem;
+	// Wide enough for the sentence on one line; it wraps (centred) if it ever gets longer.
+	// The box was 26rem and the text didn't wrap, so it ran off its right edge, off-centre.
+	max-width: 48rem;
+	white-space: normal;
 	margin: 1rem 0 2.5rem;
 }
 
