@@ -1,6 +1,6 @@
 {
 	"name": "memories-tv-webos",
-	"version": "0.9.0",
+	"version": "1.0.0",
 	"description": "Read-only Nextcloud Memories photo & video client for LG webOS TVs (fork of immich-tv-webos)",
 	"author": "Quentin Jean-Amans <quentin.sqja@gmail.com> (https://github.com/Seeky91)",
 	"main": "src/index.tsx",
