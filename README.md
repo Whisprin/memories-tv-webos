@@ -13,8 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Whisprin/memories-tv-webos" alt="MIT license"></a>
 </p>
 
-> **Version 0.9.** Every section of Memories' web app works except Explore, Map and Trash. Memories TV only reads your library: nothing on your server is changed.
-> There are no releases yet: install it by building from source.
+> Every section of Memories' web app works except Explore, Map and Trash. Memories TV only reads your library: nothing on your server is changed. See the [changelog](CHANGELOG.md) for what's new.
 
 Memories TV is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) by Quentin Jean-Amans. The TV interface is theirs; the data layer, sign-in and media handling were replaced to talk to Nextcloud Memories instead of Immich.
 
@@ -62,7 +61,18 @@ Not yet: Explore, Map and Trash.
 
 ## 📥 Installation
 
-There is no release or Homebrew Channel package yet. Build the app and install it on a TV in Developer Mode:
+The app installs on a TV in [Developer Mode](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app), with the [webOS CLI](https://webostv.developer.lge.com/develop/tools/cli-installation/). It isn't in the Homebrew Channel or LG's store.
+
+### From a release
+
+1. Install the webOS CLI and register your TV with it (`ares-setup-device`).
+2. Download the `.ipk` file of the [latest release](https://github.com/Whisprin/memories-tv-webos/releases/latest).
+3. Install it:
+   ```bash
+   ares-install --device <your TV> eu.whisprin.memoriestv_<version>_all.ipk
+   ```
+
+### From source
 
 1. Install [Node.js](https://nodejs.org/) 24 or newer, the [Enact CLI](https://enactjs.com/docs/developer-tools/cli/) and the [webOS CLI](https://webostv.developer.lge.com/develop/tools/cli-installation/):
    ```bash
