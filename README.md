@@ -15,6 +15,10 @@
 
 > Every section of Memories' web app works except Explore, Map and Trash. Memories TV only reads your library: nothing on your server is changed. See the [changelog](CHANGELOG.md) for what's new.
 
+<p align="center">
+  <img src="assets/screenshots/timeline.png" width="900" alt="Memories TV showing the timeline: the navigation rail on the left, a justified grid of photos and videos with RAW and duration badges, and the date scrubber on the right">
+</p>
+
 Memories TV is a fork of [immich-tv-webos](https://github.com/Seeky91/immich-tv-webos) by Quentin Jean-Amans. The TV interface is theirs; the data layer, sign-in and media handling were replaced to talk to Nextcloud Memories instead of Immich.
 
 ## ✨ Features
