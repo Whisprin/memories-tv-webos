@@ -13,5 +13,8 @@
 	"vendorExtension": {
 		"allowCrossDomain": true
 	},
-	"requiredACG": []
+	"requiredACG": [
+		"application.launcher",
+		"application.query"
+	]
 }

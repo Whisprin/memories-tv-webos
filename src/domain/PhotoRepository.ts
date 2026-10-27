@@ -19,6 +19,9 @@ export interface PhotoRepository {
 
 	searchRandomImages(scope: TimelineScope, size: number): Promise<TimelineAsset[]>;
 
+	// TEST (feature/tv-photo-viewer): image sources for the hand-off probe; optional so fakes needn't have it.
+	handoffSources?(assetId: string): Array<{label: string; url: string; mime: string}>;
+
 	// File, camera, place, people and tags of one photo (the viewer's info panel).
 	getAssetDetails(assetId: string): Promise<AssetDetails>;
 

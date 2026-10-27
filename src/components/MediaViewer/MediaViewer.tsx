@@ -7,6 +7,7 @@ import {createSpotlightContainer, forceFocus, SpottableDiv} from '../../utils/sp
 import type {TimelineAsset} from '../../domain/types';
 import {MediaControls, ACTION_BAR_SPOTLIGHT_ID} from './MediaControls';
 import {InfoPanel} from './InfoPanel';
+import {HandoffTest} from './HandoffTest';
 import {VideoPlayer, VideoPlayerApi} from './VideoPlayer';
 import css from './MediaViewer.module.less';
 
@@ -54,13 +55,17 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 	const [infoOpen, setInfoOpen] = useState(false);
 	const toggleInfo = useCallback(() => setInfoOpen((open) => !open), []);
 	const showInfo = infoOpen && !isVideo;
+	// TEST (feature/tv-photo-viewer): while the probe is open it owns the keys.
+	const [handoffOpen, setHandoffOpen] = useState(false);
+	const openHandoff = useCallback(() => setHandoffOpen(true), []);
+	const closeHandoff = useCallback(() => setHandoffOpen(false), []);
 	const [rotation, rotate] = useAssetRotation(isVideo ? undefined : asset?.id);
 	const controlsRef = useRef<HTMLDivElement>(null);
 
 	// Auto-hide here is for still images. Videos can't use it: while hidden it swallows OK, which
 	// Sandstone VideoPlayer needs for play/pause and its transport bar. A video's overlay instead
 	// follows that bar (see videoOverlayVisible below).
-	const {visible: controlsVisible, show: showControls, hide: hideControls} = useAutoHideControls({enabled: !isVideo, controlsRef});
+	const {visible: controlsVisible, show: showControls, hide: hideControls} = useAutoHideControls({enabled: !isVideo && !handoffOpen, controlsRef});
 	const inActionBar = !isVideo && controlsVisible && actionBarFocused;
 
 	// The bar faded out under an idle focus: hand it back to the stage rather than leave it on
@@ -117,7 +122,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 		onClose();
 	}, [showInfo, videoControlsOpen, onClose]);
 
-	useWebOSKeys({
+	useWebOSKeys(handoffOpen ? {} : {
 		onBack: handleBack,
 		// Left/right page between media, except inside the action bar (Spotlight moves between
 		// its buttons) and while the video transport bar is open (Sandstone seeks).
@@ -169,6 +174,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 			</div>
 			{!isVideo && <SpottableDiv spotlightId={STAGE_SPOTLIGHT_ID} className={css.stage} onClick={handleStageClick} />}
 			{showInfo && <InfoPanel asset={asset} />}
+			{handoffOpen && !isVideo && <HandoffTest asset={asset} onClose={closeHandoff} />}
 			<MediaControls
 				rootRef={controlsRef}
 				asset={asset}
@@ -184,6 +190,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 				onStartSlideshow={onStartSlideshow}
 				infoOpen={showInfo}
 				onToggleInfo={toggleInfo}
+				onOpenHandoffTest={openHandoff}
 				onActionBarFocusChange={setActionBarFocused}
 			/>
 		</ViewerContainer>

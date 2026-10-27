@@ -27,11 +27,13 @@ interface MediaControlsProps {
 	onStartSlideshow: () => void;
 	infoOpen: boolean;
 	onToggleInfo: () => void;
+	// TEST (feature/tv-photo-viewer)
+	onOpenHandoffTest: () => void;
 	onActionBarFocusChange: (focused: boolean) => void;
 }
 
 export const MediaControls: React.FC<MediaControlsProps> = React.memo(
-	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, infoOpen, onToggleInfo, onActionBarFocusChange}) => {
+	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, infoOpen, onToggleInfo, onOpenHandoffTest, onActionBarFocusChange}) => {
 		const handleBarFocus = useCallback(() => onActionBarFocusChange(true), [onActionBarFocusChange]);
 		const handleBarBlur = useCallback(
 			(event: React.FocusEvent<HTMLDivElement>) => {
@@ -66,6 +68,7 @@ export const MediaControls: React.FC<MediaControlsProps> = React.memo(
 							<RoundButton icon="rotate" tooltipText="Rotate" onClick={onRotate} />
 							<RoundButton icon="play" tooltipText="Slideshow" onClick={onStartSlideshow} />
 							<RoundButton icon="closex" tooltipText="Close" onClick={onClose} />
+							<RoundButton icon="ellipsis" tooltipText="TV viewer test" onClick={onOpenHandoffTest} />
 						</ActionBar>
 					</div>
 				)}

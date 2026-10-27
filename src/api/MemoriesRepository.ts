@@ -27,6 +27,13 @@ interface MemoriesPhoto {
 	mimetype?: string;
 }
 
+// TEST (feature/tv-photo-viewer)
+export interface HandoffSource {
+	label: string;
+	url: string;
+	mime: string;
+}
+
 // GET /api/image/info/<fileid>?tags=1&clusters=<face backend>, as Memories' info sidebar reads it.
 export interface MemoriesImageInfo {
 	basename?: string;
@@ -207,6 +214,9 @@ export interface MediaUrls {
 	memoriesUrl(path: string, shard?: number): string;
 	previewUrl(fileid: number, x: number, y: number, a: 0 | 1): string;
 	stop?(): void;
+	// TEST (feature/tv-photo-viewer)
+	staticUrl?(name: string): string;
+	readonly serviceDir?: string;
 }
 
 // Grid rows are 400 CSS px high with the aspect ratio kept (TARGET_ROW_HEIGHT_PX).
@@ -447,6 +457,20 @@ export class MemoriesRepository implements PhotoRepository {
 			name: f.name,
 			coverUrl: f.previews?.[0] ? this.thumbnailUrl(String(f.previews[0].fileid)) : null,
 		}));
+	}
+
+	// TEST (feature/tv-photo-viewer): image sources to hand to the TV's own photo viewer.
+	public handoffSources(assetId: string): HandoffSource[] {
+		const sources: HandoffSource[] = [];
+		if (this.media.serviceDir) {
+			sources.push({label: 'Pattern, file path', url: `${this.media.serviceDir}/test-4k.png`, mime: 'image/png'});
+			sources.push({label: 'Pattern, file:// URL', url: `file://${this.media.serviceDir}/test-4k.png`, mime: 'image/png'});
+		}
+		if (this.media.staticUrl) sources.push({label: 'Pattern, http 127.0.0.1', url: this.media.staticUrl('test-4k.png'), mime: 'image/png'});
+		const id = encodeURIComponent(assetId);
+		sources.push({label: 'This photo, 4K preview', url: this.media.memoriesUrl(`api/image/preview/${id}?x=3840&y=2160&a=1`), mime: 'image/jpeg'});
+		sources.push({label: 'This photo, original file', url: this.media.memoriesUrl(`api/stream/${id}`), mime: 'image/jpeg'});
+		return sources;
 	}
 
 	public async getAssetDetails(assetId: string): Promise<AssetDetails> {

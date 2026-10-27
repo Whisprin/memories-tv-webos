@@ -1,5 +1,6 @@
 'use strict';
 /* eslint-disable no-var -- plain ES5 so it runs on any webOS Node version */
+/* global __dirname */
 
 // Memories TV helper service.
 //
@@ -15,6 +16,8 @@
 //   /<token>/batch/preview/<id>?x=&y=&a=
 //                                  previews; requests arriving within BATCH_WINDOW_MS are
 //                                  fetched upstream as one multipreview, then answered one by one
+//   /<token>/static/test-4k.png    TEST (feature/tv-photo-viewer): a 3840x2160 pattern packaged
+//                                  with the service, for the hand-off-to-TV-viewer probe
 // It listens on several ports because the browser opens at most 6 connections per host:port;
 // spreading <img> requests over the ports lets more of them reach the proxy at once.
 
@@ -118,7 +121,25 @@ function b64(s) {
   return (Buffer.from ? Buffer.from(s, 'utf8') : new Buffer(s, 'utf8')).toString('base64');
 }
 
+// TEST (feature/tv-photo-viewer): files served from the service's own folder.
+var STATIC_FILES = { 'test-4k.png': 'image/png' };
+
+function serveStatic(res, name) {
+  var fs = require('fs');
+  var path = require('path');
+  fs.readFile(path.join(__dirname, name), function (err, data) {
+    if (err) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, { 'Content-Type': STATIC_FILES[name], 'Content-Length': data.length });
+    res.end(data);
+  });
+}
+
 function handleProxy(req, res) {
+  var staticPrefix = '/' + proxy.token + '/static/';
+  if (req.method === 'GET' && req.url.indexOf(staticPrefix) === 0) {
+    var name = req.url.slice(staticPrefix.length).split('?')[0];
+    if (STATIC_FILES[name]) { serveStatic(res, name); return; }
+  }
   var batchPrefix = '/' + proxy.token + '/batch/preview/';
   if (req.method === 'GET' && proxy.auth && req.url.indexOf(batchPrefix) === 0) {
     enqueuePreview(req, res, req.url.slice(batchPrefix.length));
@@ -346,7 +367,9 @@ service.register('mediaProxy', function (message) {
       holdActivity();
     }
     message.respond({
-      returnValue: true, port: proxy.ports[0], ports: proxy.ports, token: proxy.token, subscribed: !!message.isSubscription
+      returnValue: true, port: proxy.ports[0], ports: proxy.ports, token: proxy.token, subscribed: !!message.isSubscription,
+      // TEST (feature/tv-photo-viewer): where the service's files are, for file-path probes
+      serviceDir: __dirname
     });
   });
 }, function () {
