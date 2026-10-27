@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-10-27
 
-### Changed
-- Runs on **webOS TV 23 and newer** (2023 models onwards), instead of webOS TV 26 only: the app is built for Chromium 94.
+Installs over 1.0.0; accounts and settings are kept.
 
 ### Added
 - **Info** button in the photo viewer: a panel with the photo's date, place, people, tags, camera and exposure, and file details, as in Memories' info sidebar. Back or Info closes it.
+
+### Changed
+- Runs on **webOS TV 23 and newer** (2023 models onwards), instead of webOS TV 26 only: the app is built for Chromium 94.
 
 ## 1.0.0 — 2026-10-27
 
