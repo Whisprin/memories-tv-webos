@@ -49,7 +49,7 @@ Not yet: Explore, Map and Trash.
 ## 📋 Requirements
 
 **TV**
-- An LG TV with **webOS TV 23 or newer** (2023 models onwards; web engine Chromium 94 or newer). Memories TV is developed on an LG OLED77G48LW (webOS TV 26) and tested on webOS TV 23 as well. Older TVs are not supported. Which video formats play depends on the TV's hardware.
+- An LG TV with **webOS TV 23 or newer** (2023 models onwards; web engine Chromium 94 or newer). Memories TV is developed on an LG OLED77G48LW (webOS TV 26) and tested on webOS TV 23 as well. Older TVs are not tested. Which video formats play depends on the TV's hardware.
 - [Developer Mode](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app) enabled, to install the app.
 
 **Server**
