@@ -55,7 +55,7 @@ Not yet: Explore, Map and Trash.
 **Supported formats**
 
 - **Photos** are shown as previews made by Nextcloud, so any photo Nextcloud and Memories can preview works. Tested: JPG, HEIC, and RAW (DNG from a Galaxy S24). If HEIC or RAW photos show "Preview unavailable", check Nextcloud's preview settings.
-- **Videos** play from the original file, without transcoding (Memories' go-vod is not used), so the TV has to support the format. Tested: MP4 with H.264 or HEVC, including **HDR** HEVC video from a Galaxy S24, and portrait video. The TV also reports support for VP9 and AV1, not yet tried with real files.
+- **Videos** play from the original file, without transcoding (Memories' go-vod is not used), so the TV has to support the format. Tested: MP4 with H.264 or HEVC, including **HDR** HEVC video from a Galaxy S24 (the TV switches to HDR), and portrait video. The TV also reports support for VP9 and AV1, not yet tried with real files.
 - **MOV files**, such as iPhone videos, may not play: the TV reports no support for the MOV container. Not yet tried with real files.
 - **Live and motion photos** show as still photos; playing the motion part isn't supported yet.
 
