@@ -10,6 +10,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Whisprin/memories-tv-webos/releases/latest"><img src="https://img.shields.io/github/v/release/Whisprin/memories-tv-webos" alt="Latest release"></a>
+  <a href="https://github.com/Whisprin/memories-tv-webos/releases"><img src="https://img.shields.io/github/downloads/Whisprin/memories-tv-webos/total" alt="Downloads"></a>
+  <a href="#-requirements"><img src="https://img.shields.io/badge/webOS-23%2B-a50034" alt="webOS TV 23 or newer"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Whisprin/memories-tv-webos" alt="MIT license"></a>
 </p>
 
