@@ -469,6 +469,8 @@ export class MemoriesRepository implements PhotoRepository {
 		if (this.media.staticUrl) sources.push({label: 'Pattern, http 127.0.0.1', url: this.media.staticUrl('test-4k.png'), mime: 'image/png'});
 		const id = encodeURIComponent(assetId);
 		sources.push({label: 'This photo, 4K preview', url: this.media.memoriesUrl(`api/image/preview/${id}?x=3840&y=2160&a=1`), mime: 'image/jpeg'});
+		sources.push({label: 'This photo, 4096 preview', url: this.media.memoriesUrl(`api/image/preview/${id}?x=4096&y=4096&a=1`), mime: 'image/jpeg'});
+		sources.push({label: 'This photo, decodable', url: this.media.memoriesUrl(`api/image/decodable/${id}`), mime: 'image/jpeg'});
 		sources.push({label: 'This photo, original file', url: this.media.memoriesUrl(`api/stream/${id}`), mime: 'image/jpeg'});
 		return sources;
 	}

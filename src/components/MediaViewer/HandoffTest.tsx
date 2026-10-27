@@ -1,7 +1,7 @@
 // TEST (feature/tv-photo-viewer): probe whether the TV's own photo viewer can show a photo
 // at full 4K. Not for release: it lists which built-in viewer apps exist, launches them with
 // several image sources and payload shapes, and logs every reply on screen.
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import Button from '@enact/sandstone/Button';
 import LS2Request from '@enact/webos/LS2Request';
 import {useRepository} from '../../domain/RepositoryContext';
@@ -47,27 +47,23 @@ const call = (service: string, method: string, parameters: object): Promise<Luna
 
 const fileName = (url: string) => decodeURIComponent(url.split('?')[0]!.split('/').pop() || 'image');
 
+const payloadItem = (url: string, mime: string) => ({
+	fullPath: url,
+	fileName: fileName(url),
+	mediaType: 'IMAGE',
+	deviceType: 'DMR',
+	lastPlayPosition: -1,
+	thumbnail: '',
+	artist: '',
+	album: '',
+	subtitle: '',
+	dlnaInfo: {flagVal: 4096, cleartextSize: '-1', contentLength: '-1', opVal: 1, protocolInfo: `http-get:*:${mime}:*`, duration: 0},
+});
+
 // The media player's known launch payload (seen for video), with mediaType IMAGE. 'target' is
 // the shape some remote-control libraries use for media.viewer.
 const launchParams = (shape: Shape, url: string, mime: string) =>
-	shape === 'payload'
-		? {
-				payload: [
-					{
-						fullPath: url,
-						fileName: fileName(url),
-						mediaType: 'IMAGE',
-						deviceType: 'DMR',
-						lastPlayPosition: -1,
-						thumbnail: '',
-						artist: '',
-						album: '',
-						subtitle: '',
-						dlnaInfo: {flagVal: 4096, cleartextSize: '-1', contentLength: '-1', opVal: 1, protocolInfo: `http-get:*:${mime}:*`, duration: 0},
-					},
-				],
-			}
-		: {target: url, mimeType: mime, title: fileName(url)};
+	shape === 'payload' ? {payload: [payloadItem(url, mime)]} : {target: url, mimeType: mime, title: fileName(url)};
 
 const stamp = (line: string) => `${new Date().toLocaleTimeString('en-GB')}  ${line}`;
 
@@ -86,9 +82,16 @@ const LaunchButton: React.FC<LaunchButtonProps> = ({appId, source, onLaunch}) =>
 	);
 };
 
-export const HandoffTest: React.FC<{asset: TimelineAsset; onClose: () => void}> = ({asset, onClose}) => {
+interface HandoffTestProps {
+	asset: TimelineAsset;
+	// up to four photos after this one, for the several-photos payload
+	nextAssets: TimelineAsset[];
+	onClose: () => void;
+}
+
+export const HandoffTest: React.FC<HandoffTestProps> = ({asset, nextAssets, onClose}) => {
 	const repository = useRepository();
-	const sources = repository.handoffSources?.(asset.id) ?? [];
+	const sources = useMemo(() => repository.handoffSources?.(asset.id) ?? [], [repository, asset.id]);
 	const pattern = sources.find((s) => s.url.startsWith('http') && s.label.startsWith('Pattern'));
 	const [apps, setApps] = useState<Record<string, string>>({});
 	const [shape, setShape] = useState<Shape>('payload');
@@ -131,6 +134,29 @@ export const HandoffTest: React.FC<{asset: TimelineAsset; onClose: () => void}> 
 		[addLog, shape]
 	);
 
+	// Several originals in one payload: does the player page through them?
+	const launchSeveral = useCallback(() => {
+		const urls = [asset, ...nextAssets].map((a) => repository.handoffSources?.(a.id).find((s) => s.label === 'This photo, original file')?.url).filter((u): u is string => !!u);
+		addLog(`launch mediadiscovery · ${urls.length} originals in one payload`);
+		void call('luna://com.webos.applicationManager', 'launch', {
+			id: 'com.webos.app.mediadiscovery',
+			params: {payload: urls.map((u) => payloadItem(u, 'image/jpeg'))},
+		}).then((res) => addLog(`  → ${JSON.stringify(res).slice(0, 160)}`));
+	}, [asset, nextAssets, repository, addLog]);
+
+	// Loads each http source here and logs its real pixel size.
+	const measure = useCallback(() => {
+		sources
+			.filter((s) => s.url.startsWith('http'))
+			.forEach((s) => {
+				const img = new Image();
+				const t0 = Date.now();
+				img.onload = () => addLog(`${s.label}: ${img.naturalWidth}×${img.naturalHeight} (${Date.now() - t0} ms)`);
+				img.onerror = () => addLog(`${s.label}: not an image the app can decode`);
+				img.src = s.url;
+			});
+	}, [sources, addLog]);
+
 	const installed = CANDIDATE_APPS.filter((id) => apps[id] === 'installed');
 	// If the query itself is refused, still offer the documented viewers.
 	const targets = installed.length > 0 ? installed : CANDIDATE_APPS.slice(0, 2);
@@ -153,6 +179,13 @@ export const HandoffTest: React.FC<{asset: TimelineAsset; onClose: () => void}> 
 					<div className={css.label}>Payload shape</div>
 					<Button size="small" onClick={toggleShape}>
 						{shape === 'payload' ? 'payload [fullPath, IMAGE]' : 'target + mimeType'}
+					</Button>
+					<div className={css.label}>More</div>
+					<Button size="small" disabled={sources.length === 0} onClick={measure}>
+						Measure sizes
+					</Button>
+					<Button size="small" disabled={sources.length === 0} onClick={launchSeveral}>
+						{`${1 + nextAssets.length} photos in one payload`}
 					</Button>
 					<div className={css.label}>Compare</div>
 					<Button size="small" disabled={!pattern} onClick={openPattern}>

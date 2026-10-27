@@ -174,7 +174,13 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 			</div>
 			{!isVideo && <SpottableDiv spotlightId={STAGE_SPOTLIGHT_ID} className={css.stage} onClick={handleStageClick} />}
 			{showInfo && <InfoPanel asset={asset} />}
-			{handoffOpen && !isVideo && <HandoffTest asset={asset} onClose={closeHandoff} />}
+			{handoffOpen && !isVideo && (
+				<HandoffTest
+					asset={asset}
+					nextAssets={[1, 2, 3, 4].map((n) => getAssetAt(currentIndex + n)).filter((a): a is TimelineAsset => !!a && a.type !== 'VIDEO')}
+					onClose={closeHandoff}
+				/>
+			)}
 			<MediaControls
 				rootRef={controlsRef}
 				asset={asset}
