@@ -87,3 +87,24 @@ export interface Person {
 	name: string;
 	assetCount: number;
 }
+
+// What the viewer's info panel shows about a photo. Empty fields are null or [].
+export interface AssetDetails {
+	fileName: string | null;
+	// bytes
+	fileSize: number | null;
+	width: number | null;
+	height: number | null;
+	megapixels: number | null;
+	// e.g. 'samsung SM-S921B'
+	camera: string | null;
+	lens: string | null;
+	// e.g. ['f/1.8', '1/120', '6.3mm', 'ISO 50']
+	exposure: string[];
+	// the address Memories found for the photo's location
+	place: string | null;
+	// names of recognised people; faces not yet named only count
+	people: string[];
+	unnamedPeople: number;
+	tags: string[];
+}

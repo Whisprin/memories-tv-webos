@@ -1,6 +1,6 @@
 import {APIError, NextcloudClient} from './client';
 import type {PhotoRepository} from '../domain/PhotoRepository';
-import {MAIN_TIMELINE, type Album, type AlbumDetails, type Collection, type Folder, type Person, type Place, type Tag, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
+import {MAIN_TIMELINE, type Album, type AlbumDetails, type AssetDetails, type Collection, type Folder, type Person, type Place, type Tag, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
 
 // Memories (https://memories.gallery) groups the library by day: GET /api/days returns
 // [{dayid, count}] with dayid = days since 1970-01-01 in the photos' local time, newest
@@ -25,6 +25,77 @@ interface MemoriesPhoto {
 	// file name, e.g. 'IMG_1234.jpg'
 	basename?: string;
 	mimetype?: string;
+}
+
+// GET /api/image/info/<fileid>?tags=1&clusters=<face backend>, as Memories' info sidebar reads it.
+export interface MemoriesImageInfo {
+	basename?: string;
+	size?: number;
+	w?: number;
+	h?: number;
+	// human-readable location, when Memories' places are set up
+	address?: string;
+	exif?: Record<string, unknown>;
+	// tag names, as an object of names or a list
+	tags?: Record<string, string> | string[];
+	// per requested cluster type, the clusters this file belongs to
+	clusters?: Record<string, Array<{name?: string}>>;
+}
+
+const exifNumber = (exif: Record<string, unknown>, ...keys: string[]): number | null => {
+	for (const key of keys) {
+		const n = Number(exif[key]);
+		if (exif[key] != null && exif[key] !== '' && Number.isFinite(n) && n > 0) return n;
+	}
+	return null;
+};
+
+const exifText = (exif: Record<string, unknown>, key: string): string | null => {
+	const v = exif[key];
+	return typeof v === 'string' && v.trim() ? v.trim() : typeof v === 'number' ? String(v) : null;
+};
+
+const roundTo = (n: number, digits: number): string => String(Math.round(n * 10 ** digits) / 10 ** digits);
+
+// The info panel's view of a photo, formatted like Memories' sidebar.
+export function imageInfoToDetails(info: MemoriesImageInfo, faceBackend: string | null): AssetDetails {
+	const exif = info.exif ?? {};
+	const make = exifText(exif, 'Make');
+	const model = exifText(exif, 'Model');
+	const camera = make && model && !model.toLowerCase().includes(make.toLowerCase()) ? `${make} ${model}` : model ?? make;
+
+	const exposure: string[] = [];
+	const aperture = exifNumber(exif, 'FNumber', 'Aperture');
+	if (aperture) exposure.push(`f/${roundTo(aperture, 1)}`);
+	const shutter = exifNumber(exif, 'ExposureTime', 'ShutterSpeed', 'ShutterSpeedValue');
+	if (shutter) exposure.push(shutter < 1 ? `1/${Math.round(1 / shutter)}` : `${roundTo(shutter, 1)}s`);
+	const focal = exifNumber(exif, 'FocalLength');
+	if (focal) exposure.push(`${roundTo(focal, 1)}mm`);
+	const iso = exifNumber(exif, 'ISO');
+	if (iso) exposure.push(`ISO ${Math.round(iso)}`);
+
+	const width = info.w || exifNumber(exif, 'ImageWidth');
+	const height = info.h || exifNumber(exif, 'ImageHeight');
+	const megapixels = exifNumber(exif, 'Megapixels') ?? (width && height ? (width * height) / 1e6 : null);
+
+	const faces = faceBackend ? (info.clusters?.[faceBackend] ?? []) : [];
+	const people = faces.map((f) => (f.name ?? '').trim()).filter(Boolean);
+	const tags = Array.isArray(info.tags) ? info.tags : Object.values(info.tags ?? {});
+
+	return {
+		fileName: info.basename || null,
+		fileSize: info.size && info.size > 0 ? info.size : null,
+		width: width || null,
+		height: height || null,
+		megapixels,
+		camera: camera || null,
+		lens: exifText(exif, 'LensModel'),
+		exposure,
+		place: info.address?.trim() || null,
+		people,
+		unnamedPeople: faces.length - people.length,
+		tags: tags.filter((t): t is string => typeof t === 'string' && t.trim() !== ''),
+	};
 }
 
 // Nextcloud's MIME type for camera RAW files (DNG, CR2, NEF, ARW, …), as Memories checks it.
@@ -376,6 +447,14 @@ export class MemoriesRepository implements PhotoRepository {
 			name: f.name,
 			coverUrl: f.previews?.[0] ? this.thumbnailUrl(String(f.previews[0].fileid)) : null,
 		}));
+	}
+
+	public async getAssetDetails(assetId: string): Promise<AssetDetails> {
+		const config = await this.loadConfig().catch((): MemoriesConfig => ({}));
+		const faceBackend: FaceBackend | null = config.recognize_enabled ? 'recognize' : config.facerecognition_enabled ? 'facerecognition' : null;
+		const query = `tags=1${faceBackend ? `&clusters=${faceBackend}` : ''}`;
+		const info = await this.client.memories<MemoriesImageInfo>(`/image/info/${encodeURIComponent(assetId)}?${query}`);
+		return imageInfoToDetails(info, faceBackend);
 	}
 
 	// Memories has no random endpoint: sample random days and pick images from them.

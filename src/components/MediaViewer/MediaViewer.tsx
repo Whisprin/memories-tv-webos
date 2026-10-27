@@ -6,6 +6,7 @@ import {useRepository} from '../../domain/RepositoryContext';
 import {createSpotlightContainer, forceFocus, SpottableDiv} from '../../utils/spotlight';
 import type {TimelineAsset} from '../../domain/types';
 import {MediaControls, ACTION_BAR_SPOTLIGHT_ID} from './MediaControls';
+import {InfoPanel} from './InfoPanel';
 import {VideoPlayer, VideoPlayerApi} from './VideoPlayer';
 import css from './MediaViewer.module.less';
 
@@ -49,6 +50,10 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 	const isVideo = asset?.type === 'VIDEO';
 
 	const [actionBarFocused, setActionBarFocused] = useState(false);
+	// The Info panel stays open while paging through photos (it follows the current one).
+	const [infoOpen, setInfoOpen] = useState(false);
+	const toggleInfo = useCallback(() => setInfoOpen((open) => !open), []);
+	const showInfo = infoOpen && !isVideo;
 	const [rotation, rotate] = useAssetRotation(isVideo ? undefined : asset?.id);
 	const controlsRef = useRef<HTMLDivElement>(null);
 
@@ -101,12 +106,16 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 	// (capture + stopImmediatePropagation) preempts Sandstone's Cancelable, so the
 	// two-step behavior has to be restored here.
 	const handleBack = useCallback(() => {
+		if (showInfo) {
+			setInfoOpen(false);
+			return;
+		}
 		if (videoControlsOpen && playerApiRef.current) {
 			playerApiRef.current.hideControls();
 			return;
 		}
 		onClose();
-	}, [videoControlsOpen, onClose]);
+	}, [showInfo, videoControlsOpen, onClose]);
 
 	useWebOSKeys({
 		onBack: handleBack,
@@ -159,6 +168,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 				)}
 			</div>
 			{!isVideo && <SpottableDiv spotlightId={STAGE_SPOTLIGHT_ID} className={css.stage} onClick={handleStageClick} />}
+			{showInfo && <InfoPanel asset={asset} />}
 			<MediaControls
 				rootRef={controlsRef}
 				asset={asset}
@@ -172,6 +182,8 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 				onClose={onClose}
 				onRotate={rotate}
 				onStartSlideshow={onStartSlideshow}
+				infoOpen={showInfo}
+				onToggleInfo={toggleInfo}
 				onActionBarFocusChange={setActionBarFocused}
 			/>
 		</ViewerContainer>

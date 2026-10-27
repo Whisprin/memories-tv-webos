@@ -1,4 +1,4 @@
-import type {Album, AlbumDetails, Folder, Person, Place, Tag, TimelineAsset, TimelineBucket, TimelineScope} from './types';
+import type {Album, AlbumDetails, AssetDetails, Folder, Person, Place, Tag, TimelineAsset, TimelineBucket, TimelineScope} from './types';
 
 export interface PhotoRepository {
 	getBuckets(scope?: TimelineScope): Promise<TimelineBucket[]>;
@@ -18,6 +18,9 @@ export interface PhotoRepository {
 	getSubfolders(path: string): Promise<Folder[]>;
 
 	searchRandomImages(scope: TimelineScope, size: number): Promise<TimelineAsset[]>;
+
+	// File, camera, place, people and tags of one photo (the viewer's info panel).
+	getAssetDetails(assetId: string): Promise<AssetDetails>;
 
 	thumbnailUrl(assetId: string): string;
 	previewUrl(assetId: string): string;

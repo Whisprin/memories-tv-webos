@@ -1,0 +1,56 @@
+@import '../../styles/_theme.less';
+
+// Authored in 4K-space px (postcss-ri halves them at FHD). Sits on the right, between the top
+// bar and the action bar, and stays up while the controls fade.
+.panel {
+	position: absolute;
+	top: 240px;
+	right: 112px;
+	// As tall as its content, but never over the action bar.
+	max-height: calc(100% - 600px);
+	width: 1000px;
+	box-sizing: border-box;
+	padding: 56px 64px;
+	overflow: hidden;
+	border-radius: @radius-card;
+	background: rgba(18, 20, 24, 0.88);
+	color: @text;
+	font-size: var(--font-body);
+	line-height: 1.4;
+	z-index: 1;
+}
+
+.row {
+	margin-bottom: 44px;
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+}
+
+.label {
+	margin-bottom: 8px;
+	font-size: var(--font-caption);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: @text-subtle;
+}
+
+.value {
+	overflow-wrap: anywhere;
+}
+
+.secondary {
+	font-size: var(--font-caption);
+	color: @text-muted;
+}
+
+.fileName {
+	overflow-wrap: anywhere;
+}
+
+.state {
+	margin: 0;
+	color: @text-muted;
+}

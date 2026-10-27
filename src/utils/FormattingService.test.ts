@@ -1,4 +1,4 @@
-import {formatAssetDateTime, formatCount, formatDuration} from './FormattingService';
+import {formatAssetDateTime, formatCount, formatDuration, formatFileSize} from './FormattingService';
 
 describe('formatDuration', () => {
 	it('formats sub-hour durations as M:SS', () => {
@@ -27,5 +27,13 @@ describe('formatCount', () => {
 	it('takes an irregular plural', () => {
 		expect(formatCount(1, 'person', 'people')).toBe('1 person');
 		expect(formatCount(3, 'person', 'people')).toBe('3 people');
+	});
+});
+
+describe('formatFileSize', () => {
+	it('uses decimal units with one decimal', () => {
+		expect(formatFileSize(512)).toBe('512 B');
+		expect(formatFileSize(1_536_000)).toBe('1.5 MB');
+		expect(formatFileSize(2_100_000_000)).toBe('2.1 GB');
 	});
 });

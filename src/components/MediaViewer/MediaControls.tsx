@@ -25,11 +25,13 @@ interface MediaControlsProps {
 	onClose: () => void;
 	onRotate: () => void;
 	onStartSlideshow: () => void;
+	infoOpen: boolean;
+	onToggleInfo: () => void;
 	onActionBarFocusChange: (focused: boolean) => void;
 }
 
 export const MediaControls: React.FC<MediaControlsProps> = React.memo(
-	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, onActionBarFocusChange}) => {
+	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, infoOpen, onToggleInfo, onActionBarFocusChange}) => {
 		const handleBarFocus = useCallback(() => onActionBarFocusChange(true), [onActionBarFocusChange]);
 		const handleBarBlur = useCallback(
 			(event: React.FocusEvent<HTMLDivElement>) => {
@@ -60,6 +62,7 @@ export const MediaControls: React.FC<MediaControlsProps> = React.memo(
 				{!isVideo && (
 					<div className={chrome.bottomBar}>
 						<ActionBar spotlightId={ACTION_BAR_SPOTLIGHT_ID} className={chrome.actionBar} onFocus={handleBarFocus} onBlur={handleBarBlur}>
+							<RoundButton icon="info" tooltipText={infoOpen ? 'Hide info' : 'Info'} onClick={onToggleInfo} />
 							<RoundButton icon="rotate" tooltipText="Rotate" onClick={onRotate} />
 							<RoundButton icon="play" tooltipText="Slideshow" onClick={onStartSlideshow} />
 							<RoundButton icon="closex" tooltipText="Close" onClick={onClose} />

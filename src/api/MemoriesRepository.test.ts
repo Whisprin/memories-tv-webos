@@ -1,4 +1,4 @@
-import {MemoriesRepository, onThisDayIds, stackRawFiles, albumToAlbum, dayIdToDate, faceToPerson, photoToAsset, type MediaUrls} from './MemoriesRepository';
+import {MemoriesRepository, imageInfoToDetails, onThisDayIds, stackRawFiles, albumToAlbum, dayIdToDate, faceToPerson, photoToAsset, type MediaUrls} from './MemoriesRepository';
 import type {NextcloudClient} from './client';
 
 // 2026-03-01 is day 20513 since 1970-01-01.
@@ -373,5 +373,48 @@ describe('RAW files', () => {
 		const off = repoWith({stack_raw_files: false}, pair);
 		await off.getBuckets();
 		expect((await off.getBucketAssets('2026-03-01')).map((a) => [a.id, a.isRaw])).toEqual([['1', false], ['2', true]]);
+	});
+});
+
+describe('photo details', () => {
+	const info = {
+		basename: '20261027_120000.jpg',
+		size: 4200000,
+		w: 4000,
+		h: 3000,
+		address: 'Berlin, Germany',
+		exif: {Make: 'samsung', Model: 'SM-S921B', FNumber: 1.8, ExposureTime: 0.008333, FocalLength: 6.3, ISO: 50, LensModel: ''},
+		tags: {'3': 'Holiday', '7': 'Family'},
+		clusters: {recognize: [{name: 'Anna'}, {name: ''}]},
+	};
+
+	test('formats camera, exposure, size, place, people and tags like Memories', () => {
+		expect(imageInfoToDetails(info, 'recognize')).toEqual({
+			fileName: '20261027_120000.jpg',
+			fileSize: 4200000,
+			width: 4000,
+			height: 3000,
+			megapixels: 12,
+			camera: 'samsung SM-S921B',
+			lens: null,
+			exposure: ['f/1.8', '1/120', '6.3mm', 'ISO 50'],
+			place: 'Berlin, Germany',
+			people: ['Anna'],
+			unnamedPeople: 1,
+			tags: ['Holiday', 'Family'],
+		});
+	});
+
+	test('long exposures, a model that names its maker, and missing data', () => {
+		const d = imageInfoToDetails({exif: {Make: 'Canon', Model: 'Canon EOS R6', ExposureTime: 2.5}, tags: []}, null);
+		expect(d.camera).toBe('Canon EOS R6');
+		expect(d.exposure).toEqual(['2.5s']);
+		expect(d).toMatchObject({fileName: null, fileSize: null, megapixels: null, place: null, people: [], unnamedPeople: 0, tags: []});
+	});
+
+	test('asks Memories for tags and the enabled face backend', async () => {
+		const memories = jest.fn((path: string) => Promise.resolve(path === '/config' ? {recognize_enabled: true} : info));
+		await makeRepo(memories).getAssetDetails('42');
+		expect(memories).toHaveBeenCalledWith('/image/info/42?tags=1&clusters=recognize');
 	});
 });
