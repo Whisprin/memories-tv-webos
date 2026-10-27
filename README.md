@@ -52,7 +52,12 @@ Not yet: Explore, Map and Trash.
 - **Video previews enabled** in Nextcloud, for video thumbnails. Memories uses Nextcloud's previews, and for videos these need [ffmpeg](https://ffmpeg.org/) on the server and the `OC\Preview\Movie` preview provider (or video previews switched on in the Memories admin settings). Without them, video tiles show "Preview unavailable"; the videos themselves still play.
 - No CORS or reverse-proxy changes are needed.
 
-Videos play from the original file, so the TV has to support the video's format. go-vod transcoding is not used.
+**Supported formats**
+
+- **Photos** are shown as previews made by Nextcloud, so any photo Nextcloud and Memories can preview works. Tested: JPG, HEIC, and RAW (DNG from a Galaxy S24). If HEIC or RAW photos show "Preview unavailable", check Nextcloud's preview settings.
+- **Videos** play from the original file, without transcoding (Memories' go-vod is not used), so the TV has to support the format. Tested: MP4 with H.264 or HEVC, including **HDR** HEVC video from a Galaxy S24, and portrait video. The TV also reports support for VP9 and AV1, not yet tried with real files.
+- **MOV files**, such as iPhone videos, may not play: the TV reports no support for the MOV container. Not yet tried with real files.
+- **Live and motion photos** show as still photos; playing the motion part isn't supported yet.
 
 ## 📥 Installation
 
