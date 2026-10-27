@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memories TV – Nextcloud Memories on your LG TV</title>
+<meta name="description" content="Memories TV brings your Nextcloud Memories photo and video library to LG webOS TVs, built to be browsed from the couch with the remote.">
+<link rel="canonical" href="https://memoriestv.whisprin.eu/">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Memories TV">
+<meta property="og:description" content="Your Nextcloud Memories photo and video library on your LG TV.">
+<meta property="og:url" content="https://memoriestv.whisprin.eu/">
+<meta property="og:image" content="https://memoriestv.whisprin.eu/icon.png">
+<meta name="theme-color" content="#0b1f33">
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --surface: #ffffff;
+    --text: #0d1b2a;
+    --muted: #4a5a6c;
+    --line: #dde4ec;
+    --accent: #0a7aba;
+    --accent-strong: #00467a;
+    --accent-text: #ffffff;
+    --hero-from: #199de1;
+    --hero-to: #00467a;
+    --code-bg: #eef2f7;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1622;
+      --surface: #111f2e;
+      --text: #e6edf4;
+      --muted: #9fb0c2;
+      --line: #22344a;
+      --accent: #3fb0ee;
+      --accent-strong: #8fd2f7;
+      --accent-text: #04121f;
+      --hero-from: #0f6ea8;
+      --hero-to: #04233d;
+      --code-bg: #0a1826;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  a { color: var(--accent); }
+  a:hover { color: var(--accent-strong); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+  /* Hero */
+  header.hero {
+    background: radial-gradient(120% 140% at 15% 0%, var(--hero-from) 0%, var(--hero-to) 70%);
+    color: #fff;
+    padding: 72px 0 64px;
+  }
+  .hero .wrap { display: flex; gap: 40px; align-items: center; }
+  .hero img {
+    width: 152px; height: 152px; flex: none;
+    border-radius: 34px;
+    box-shadow: 0 18px 40px rgba(0, 20, 40, .35);
+  }
+  .hero h1 { margin: 0 0 8px; font-size: clamp(2.2rem, 5vw, 3.2rem); line-height: 1.1; letter-spacing: -.02em; }
+  .hero p.lead { margin: 0 0 24px; font-size: 1.2rem; max-width: 34em; color: rgba(255,255,255,.88); }
+  .hero p.lead a { color: #fff; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-block; padding: 11px 20px; border-radius: 999px;
+    font-weight: 600; text-decoration: none; font-size: 1rem;
+  }
+  .btn.primary { background: #fff; color: #00467a; }
+  .btn.primary:hover { background: #e3f3fc; color: #00467a; }
+  .btn.ghost { color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6); }
+  .btn.ghost:hover { background: rgba(255,255,255,.12); color: #fff; }
+
+  /* Sections */
+  section { padding: 56px 0 8px; }
+  h2 { font-size: 1.6rem; margin: 0 0 20px; letter-spacing: -.01em; }
+  h3 { font-size: 1.05rem; margin: 0 0 6px; }
+  p { margin: 0 0 14px; }
+  .note {
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 14px 18px; color: var(--muted);
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px;
+  }
+  .card p { margin: 0; color: var(--muted); font-size: .97rem; }
+  .card .icon { font-size: 1.5rem; line-height: 1; display: block; margin-bottom: 10px; }
+
+  .sections { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; }
+  .sections li {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: 4px 14px; font-size: .95rem;
+  }
+  .sections li.off { color: var(--muted); text-decoration: line-through; opacity: .75; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  ul.plain { margin: 0; padding-left: 20px; color: var(--muted); }
+  ul.plain li { margin-bottom: 6px; }
+  ul.plain strong { color: var(--text); }
+
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+  ol.steps li { counter-increment: step; position: relative; padding: 0 0 18px 48px; }
+  ol.steps li::before {
+    content: counter(step); position: absolute; left: 0; top: -2px;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700; font-size: .95rem;
+    background: var(--accent); color: var(--accent-text);
+  }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; margin: 8px 0 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  footer {
+    margin-top: 64px; border-top: 1px solid var(--line); padding: 28px 0 40px;
+    color: var(--muted); font-size: .92rem;
+  }
+  footer p { margin: 0 0 8px; }
+
+  @media (max-width: 680px) {
+    header.hero { padding: 48px 0 44px; }
+    .hero .wrap { flex-direction: column; align-items: flex-start; gap: 24px; }
+    .hero img { width: 112px; height: 112px; border-radius: 26px; }
+    .two { grid-template-columns: 1fr; }
+    section { padding-top: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img src="icon.png" width="152" height="152" alt="Memories TV icon: a camera aperture on blue">
+    <div>
+      <h1>Memories TV</h1>
+      <p class="lead">Your <a href="https://memories.gallery/">Nextcloud Memories</a> photo and video library on your LG TV, built to be browsed from the couch with the remote.</p>
+      <div class="buttons">
+        <a class="btn primary" href="https://github.com/Whisprin/memories-tv-webos/releases/latest">Download latest release</a>
+        <a class="btn ghost" href="https://github.com/Whisprin/memories-tv-webos">View on GitHub</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="sections">
+    <h2>Your whole library, section by section</h2>
+    <p>Memories TV follows Memories' web app, in the same order. It only reads your library: nothing on your server is changed.</p>
+    <ul class="sections" aria-label="Sections">
+      <li>Timeline</li><li>Folders</li><li>Favourites</li><li>Albums</li><li>People</li>
+      <li>Archive</li><li>On this day</li><li>Places</li><li>Tags</li>
+      <li class="off" title="Not yet">Explore</li><li class="off" title="Not yet">Map</li><li class="off" title="Not yet">Trash</li>
+    </ul>
+  </section>
+
+  <section id="features">
+    <h2>Features</h2>
+    <div class="grid">
+      <div class="card"><span class="icon" aria-hidden="true">🖼️</span><h3>Timeline</h3><p>Day by day, in a justified grid that keeps every photo's shape. A date scrubber jumps straight to any month or year.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">🔍</span><h3>Full-screen viewer</h3><p>Controls that fade away to leave the photo alone, and a rotate button for sideways shots.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">▶️</span><h3>Videos</h3><p>Played from the original file with seeking, including HDR. No transcoding needed on the server.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">🎞️</span><h3>Slideshow</h3><p>Crossfades, shuffle and an adjustable interval, and the TV's screen saver stays away while it runs.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">📱</span><h3>Sign in with your phone</h3><p>Scan a QR code and approve the TV. Your password is never typed on the TV; two-factor and single sign-on work as usual.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">👥</span><h3>Several accounts</h3><p>Add servers or family members and switch between them.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">📷</span><h3>RAW files</h3><p>A RAW badge, and RAW files stacked behind the JPG or HEIC of the same name when Memories stacks them.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">🎮</span><h3>Made for the remote</h3><p>Every screen works with the arrow keys; the Magic Remote pointer and scroll wheel work too.</p></div>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <div class="two">
+      <div class="card">
+        <h3>TV</h3>
+        <ul class="plain">
+          <li>An LG webOS TV whose web engine is <strong>Chrome 132 or newer</strong>. Older TVs are not supported.</li>
+          <li><a href="https://webostv.developer.lge.com/develop/getting-started/developer-mode-app">Developer Mode</a> enabled, to install the app.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Server</h3>
+        <ul class="plain">
+          <li><strong>Nextcloud</strong> with the <a href="https://apps.nextcloud.com/apps/memories">Memories</a> app.</li>
+          <li>Reachable over <strong>HTTPS with a publicly trusted certificate</strong>, such as Let's Encrypt.</li>
+          <li>Video previews enabled in Nextcloud, for video thumbnails.</li>
+          <li>No CORS or reverse-proxy changes needed.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p>Memories TV installs on a TV in Developer Mode with the <a href="https://webostv.developer.lge.com/develop/tools/cli-installation/">webOS CLI</a>. It isn't in the Homebrew Channel or LG's store yet.</p>
+    <ol class="steps">
+      <li>Install the webOS CLI and register your TV with <code>ares-setup-device</code>.</li>
+      <li>Download the <code>.ipk</code> file of the <a href="https://github.com/Whisprin/memories-tv-webos/releases/latest">latest release</a>.</li>
+      <li>Install it:
+        <pre><code>ares-install --device &lt;your TV&gt; eu.whisprin.memoriestv_&lt;version&gt;_all.ipk</code></pre>
+      </li>
+    </ol>
+    <p>To build from source instead, see the <a href="https://github.com/Whisprin/memories-tv-webos#from-source">README</a>.</p>
+  </section>
+
+  <section id="sign-in">
+    <h2>Signing in</h2>
+    <ol class="steps">
+      <li>Enter your Nextcloud address, for example <code>https://cloud.example.com</code>. The app checks that Memories is installed.</li>
+      <li>Scan the QR code with your phone, sign in to Nextcloud and choose <strong>Grant access</strong>.</li>
+      <li>The TV continues by itself and opens your timeline.</li>
+    </ol>
+    <p class="note">The app gets its own app password, listed as <strong>Memories TV</strong> under Nextcloud → Settings → Security. Revoking it there signs the TV out.</p>
+    <p>Having trouble? See <a href="https://github.com/Whisprin/memories-tv-webos#-troubleshooting">Troubleshooting</a> or <a href="https://github.com/Whisprin/memories-tv-webos/issues">open an issue</a>.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Memories TV is a fork of <a href="https://github.com/Seeky91/immich-tv-webos">immich-tv-webos</a> by Quentin Jean-Amans. MIT licensed: <a href="https://github.com/Whisprin/memories-tv-webos/blob/main/LICENSE">LICENSE</a> · <a href="https://github.com/Whisprin/memories-tv-webos/blob/main/CHANGELOG.md">Changelog</a></p>
+    <p>An unofficial, third-party client, not affiliated with or endorsed by Nextcloud, the Memories project or Immich.</p>
+  </div>
+</footer>
+
+</body>
+</html>
