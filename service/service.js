@@ -15,6 +15,8 @@
 //   /<token>/batch/preview/<id>?x=&y=&a=
 //                                  previews; requests arriving within BATCH_WINDOW_MS are
 //                                  fetched upstream as one multipreview, then answered one by one
+//   /<token>/tile/<provider>/<z>/<x>/<y>.png
+//                                  map tiles, from a disk cache (see tiles.js)
 // It listens on several ports because the browser opens at most 6 connections per host:port;
 // spreading <img> requests over the ports lets more of them reach the proxy at once.
 
@@ -24,12 +26,16 @@ var https = require('https');
 var url = require('url');
 var nodeCrypto = require('crypto');
 var Buffer = require('buffer').Buffer;
+var tiles = require('./tiles');
 
 var SERVICE_ID = 'eu.whisprin.memoriestv.service';
 var CLIENT_NAME = 'Memories TV'; // shown in Nextcloud → Settings → Security
 var TIMEOUT_MS = 15000;
 
 var service = new Service(SERVICE_ID);
+
+// Tile servers ask apps to name themselves and give a way to reach the developer.
+var TILE_USER_AGENT = 'MemoriesTV/' + require('./package.json').version + ' (+https://github.com/Whisprin/memories-tv-webos)';
 
 // payload: {server: "https://cloud.example.com"}  (normalized base URL, no trailing slash)
 // response: {returnValue: true, status: <HTTP status>, body: <parsed JSON or null>}
@@ -119,6 +125,11 @@ function b64(s) {
 }
 
 function handleProxy(req, res) {
+  var tilePrefix = '/' + proxy.token + '/tile/';
+  if (req.method === 'GET' && proxy.token && req.url.indexOf(tilePrefix) === 0) {
+    tiles.handleTile(req, res, req.url.slice(tilePrefix.length), TILE_USER_AGENT);
+    return;
+  }
   var batchPrefix = '/' + proxy.token + '/batch/preview/';
   if (req.method === 'GET' && proxy.auth && req.url.indexOf(batchPrefix) === 0) {
     enqueuePreview(req, res, req.url.slice(batchPrefix.length));

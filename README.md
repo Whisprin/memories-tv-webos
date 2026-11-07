@@ -35,6 +35,7 @@ Memories TV started as a fork of [immich-tv-webos](https://github.com/Seeky91/im
   - **Archive**: photos you archived in Memories, which the timeline hides.
   - **On this day**: photos taken on today's date in past years.
   - **Places**: photos grouped by where they were taken.
+  - **Map**: a map of where your photos were taken, with the photos of the visible area beside it (see below).
   - **Tags**: Nextcloud's collaborative tags.
 - 🔍 **Full-screen viewer**: controls that fade away to leave the photo alone, an **Info** panel (place, people, tags, camera, exposure and file details), a **4K** button that shows photos at the TV's full resolution (see below), and a rotate button for sideways shots (a local viewing preference: nothing is written to your server).
 - 📷 **RAW files**: a RAW badge on RAW photos. With Memories' *Stack RAW files with same name* on, a RAW file is hidden behind the JPG or HEIC of the same name, which gets the badge.
@@ -44,7 +45,18 @@ Memories TV started as a fork of [immich-tv-webos](https://github.com/Seeky91/im
 - 👥 **Several accounts**: add servers or family members and switch between them.
 - 🎮 **Made for the remote**: every screen works with the arrow keys; the Magic Remote pointer and scroll wheel work too.
 
-Not yet: Explore, Map and Trash.
+Not yet: Explore and Trash.
+
+### 🗺️ Map
+
+The Map tab shows the map on the left and, on the right, a timeline of the photos inside the visible area, which follows the map as you move it.
+
+- On the map, the **arrow keys** pan (hold one to pan faster), **CH ▲ / CH ▼** zoom, and **OK** moves to the photos.
+- **Back** on the photos returns to the map; Back on the map goes to the menu.
+- With the Magic Remote pointer, drag to pan, scroll to zoom, and click a marker to zoom in towards it.
+- Choose the map style in **Settings**: OpenStreetMap, a dimmed version of it for dark rooms, or OpenTopoMap.
+
+The map is drawn from [OpenStreetMap](https://www.openstreetmap.org/copyright) tiles (or [OpenTopoMap](https://opentopomap.org/)). The app's service on the TV fetches them, names the app to the tile server and keeps them in a cache for at least a week, as the tile servers ask. **Privacy:** the tile server sees your TV's internet address and which parts of the world you look at; your photos and their locations never leave your Nextcloud.
 
 ## 📋 Requirements
 
@@ -138,11 +150,11 @@ Previews Nextcloud has already made keep their old quality; new ones use the new
 
 ### "The server rejected the sign-in"
 
-The app password was revoked or has expired. Open the account menu and sign in again.
+The app password was revoked or has expired. Open **Settings** and sign in again.
 
-### People, Places or Tags are empty
+### People, Places, Map or Tags are empty
 
-Each needs something on the server: **People** needs Recognize or Face Recognition to have found faces, **Places** needs photos with a location and Memories' places set up (reverse geocoding), and **Tags** needs Nextcloud's collaborative tags on your photos.
+Each needs something on the server: **People** needs Recognize or Face Recognition to have found faces, **Places** needs photos with a location and Memories' places set up (reverse geocoding), the **Map** needs photos with a location that Memories has indexed, and **Tags** needs Nextcloud's collaborative tags on your photos.
 
 ## 🛠️ Development
 
@@ -173,7 +185,7 @@ A layered React app built with [Enact](https://enactjs.com/) and [Sandstone](htt
 - **`src/views/` and `src/components/`**: the TV UI, navigated with the webOS Spotlight (D-pad) focus system.
 - **`service/`**: a small webOS JS service (Node, no dependencies) packaged with the app. It does what the web app can't:
   - **`loginFlowInit`** starts the Nextcloud sign-in with `User-Agent: Memories TV`, so the app password carries the app's name (`fetch` can't set that header).
-  - **`mediaProxy`** runs HTTP servers on `127.0.0.1` that add the `Authorization` header Nextcloud needs, since `<img>` and `<video>` can't send it. Thumbnail requests arriving together are fetched as one Memories `multipreview`; previews it skips are fetched one by one so Nextcloud generates them. Video passes `Range` through for seeking. The proxy listens on several ports, because the browser opens at most 6 connections per host and port.
+  - **`mediaProxy`** runs HTTP servers on `127.0.0.1` that add the `Authorization` header Nextcloud needs, since `<img>` and `<video>` can't send it. Thumbnail requests arriving together are fetched as one Memories `multipreview`; previews it skips are fetched one by one so Nextcloud generates them. Video passes `Range` through for seeking. The proxy listens on several ports, because the browser opens at most 6 connections per host and port. It also serves the Map's tiles (`tiles.js`), with the app's name in the `User-Agent` and a size-capped disk cache.
 
 The app runs as a packaged `file://` page and calls Nextcloud directly. `appinfo.json` sets `vendorExtension.allowCrossDomain`, which lets it do so on the supported TVs without CORS headers on the server.
 

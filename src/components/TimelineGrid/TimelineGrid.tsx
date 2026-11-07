@@ -41,6 +41,8 @@ interface TimelineGridProps {
 	groups?: DayGroup[];
 	contentWidth: number;
 	timeline?: TimelineGridTimeline;
+	// Where Left goes from the first card of a row (a Spotlight id or selector); the rail by default.
+	leftEdgeSpotlightId?: string;
 }
 
 interface SlideshowState {
@@ -99,7 +101,7 @@ function cardRange(layout: JustifiedLayoutResult | undefined, gridTop: number, w
 	return {firstCard, endCard};
 }
 
-export const TimelineGrid: React.FC<TimelineGridProps> = ({groups, contentWidth, timeline}) => {
+export const TimelineGrid: React.FC<TimelineGridProps> = ({groups, contentWidth, timeline, leftEdgeSpotlightId}) => {
 	const dayGroups = useMemo(
 		() => (timeline ? timeline.allBuckets.flatMap((bucket) => timeline.loadedMonths.get(bucket.timeBucket) ?? []) : groups ?? EMPTY_GROUPS),
 		[groups, timeline]
@@ -120,6 +122,7 @@ export const TimelineGrid: React.FC<TimelineGridProps> = ({groups, contentWidth,
 		enabled: !viewer.state && !slideshow,
 		viewportRef: scrollRef,
 		rightEdgeSpotlightId: timeline ? scrubberSpotlightId : undefined,
+		leftEdgeSpotlightId,
 	});
 
 	const {layoutMap, heightMap, bucketHeights, bucketOffsets} = useTimelineLayout({

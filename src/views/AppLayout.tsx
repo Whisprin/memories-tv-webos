@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {SIDEBAR_WIDTH} from '../utils/constants';
 import {createSpotlightContainer} from '../utils/spotlight';
 import {useWebOSKeys} from '../hooks/useWebOSKeys';
@@ -12,6 +12,7 @@ import ArchivePanel from './ArchivePanel';
 import OnThisDayPanel from './OnThisDayPanel';
 import PlacesPanel from './PlacesPanel';
 import TagsPanel from './TagsPanel';
+import MapPanel from './MapPanel';
 import type {View} from '../types/navigation';
 import css from './AppLayout.module.less';
 
@@ -19,17 +20,24 @@ interface AppLayoutProps {
 	onOpenAccount: () => void;
 	accountLetter: string;
 	accountGradient: string;
+	accountId: string | null;
 }
 
 const ViewContainer = createSpotlightContainer({enterTo: 'last-focused'});
 
-const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, accountGradient}) => {
+const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, accountGradient, accountId}) => {
 	const [activeView, setActiveView] = useState<View>('photos');
 	const [contentWidth, setContentWidth] = useState(window.innerWidth - SIDEBAR_WIDTH);
 
 	// Back on another tab returns to the Timeline; Back on the Timeline (nothing open) exits the app,
-	// see useWebOSKeys.
-	const showPhotos = useCallback(() => setActiveView('photos'), []);
+	// see useWebOSKeys. A tab can handle Back itself first (the Map moves focus between its sides):
+	// its handler is asked here rather than pushed on the Back stack, where AppLayout's own handler,
+	// registered after its children's, would come first.
+	const panelBackRef = useRef<(() => boolean) | null>(null);
+	const showPhotos = useCallback(() => {
+		if (panelBackRef.current?.()) return;
+		setActiveView('photos');
+	}, []);
 	useWebOSKeys({onBack: activeView === 'photos' ? undefined : showPhotos});
 
 	useEffect(() => {
@@ -90,6 +98,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({onOpenAccount, accountLetter, acco
 				{activeView === 'places' && (
 					<div className={css.panelActive}>
 						<PlacesPanel contentWidth={contentWidth} />
+					</div>
+				)}
+				{activeView === 'map' && (
+					<div className={css.panelActive}>
+						<MapPanel contentWidth={contentWidth} accountId={accountId} backHandlerRef={panelBackRef} />
 					</div>
 				)}
 				{activeView === 'tags' && (

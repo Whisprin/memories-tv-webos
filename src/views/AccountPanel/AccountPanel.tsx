@@ -3,6 +3,7 @@ import Button from '@enact/sandstone/Button';
 import Spotlight, {getDirection} from '@enact/spotlight';
 import {AccountGrid} from './AccountGrid';
 import {AuthForm, type AuthFormPayload, type AuthSubmitResult} from '../../components/AuthForm/AuthForm';
+import {MapStyleSetting} from '../../components/MapStyleSetting/MapStyleSetting';
 import {createSpotlightContainer} from '../../utils/spotlight';
 import {useWebOSKeys} from '../../hooks/useWebOSKeys';
 import type {Account} from '../../utils/accountsStore';
@@ -145,15 +146,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({
 		>
 			<div className={css.panel}>
 				{subMode === 'grid' ? (
-					<AccountGrid
-						accounts={accounts}
-						activeAccountId={activeAccountId}
-						defaultAccountId={defaultAccountId}
-						onSwitch={onSwitch}
-						onSetDefault={onSetDefault}
-						onRemove={onRemove}
-						onAdd={goForm}
-					/>
+					<>
+						<AccountGrid
+							accounts={accounts}
+							activeAccountId={activeAccountId}
+							defaultAccountId={defaultAccountId}
+							onSwitch={onSwitch}
+							onSetDefault={onSetDefault}
+							onRemove={onRemove}
+							onAdd={goForm}
+						/>
+						<MapStyleSetting />
+					</>
 				) : (
 					<AuthForm
 						initialUrl={activeBaseUrl}

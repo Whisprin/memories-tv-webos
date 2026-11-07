@@ -5,7 +5,7 @@ import LS2Request from '@enact/webos/LS2Request';
 // - loginFlowInit: starts Nextcloud Login Flow v2 with User-Agent "Memories TV", which
 //   Nextcloud uses as the app password's name (fetch() can't set User-Agent).
 // - mediaProxy: HTTP servers on 127.0.0.1 that add the Authorization header, so plain
-//   <img src> / <video src> can load Memories media. Previews requested within a few ms
+//   <img src> / <video src> can load Memories media. It also serves map tiles from a disk cache. Previews requested within a few ms
 //   are batched into one multipreview upstream; video passes Range through for seeking.
 
 const SERVICE = 'luna://eu.whisprin.memoriestv.service';
@@ -81,6 +81,8 @@ export interface MediaProxy {
 	memoriesUrl(path: string, shard?: number): string;
 	// Batched preview. a=0 crops to x × y, a=1 keeps the aspect ratio within x × y.
 	previewUrl(fileid: number, x: number, y: number, a: 0 | 1): string;
+	// Map tiles through the proxy's disk cache. {s} picks the port, so tiles load in parallel.
+	tileUrl(provider: string): {url: string; subdomains: string[]};
 	stop(): void;
 }
 
@@ -106,6 +108,10 @@ export function startMediaProxy(credentials: ProxyCredentials): Promise<MediaPro
 					token: res.token,
 					memoriesUrl: (path, shard = 0) => `${base(shard)}/memories/${path.replace(/^\/+/, '')}`,
 					previewUrl: (fileid, x, y, a) => `${base(fileid)}/batch/preview/${fileid}?x=${x}&y=${y}&a=${a}`,
+					tileUrl: (provider) => ({
+						url: `http://127.0.0.1:{s}/${res.token}/tile/${encodeURIComponent(provider)}/{z}/{x}/{y}.png`,
+						subdomains: ports.map(String),
+					}),
 					stop: () => request?.cancel(),
 				});
 			},

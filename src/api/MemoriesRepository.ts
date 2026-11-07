@@ -1,6 +1,6 @@
 import {APIError, NextcloudClient} from './client';
 import type {PhotoRepository} from '../domain/PhotoRepository';
-import {MAIN_TIMELINE, type Album, type AlbumDetails, type AssetDetails, type Collection, type Folder, type Person, type Place, type Tag, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
+import {MAIN_TIMELINE, type Album, type AlbumDetails, type AssetDetails, type Collection, type Folder, type MapBounds, type MapCluster, type MapPosition, type MapStyle, type MapTileSource, type Person, type Place, type Tag, type TimelineAsset, type TimelineBucket, type TimelineScope} from '../domain/types';
 
 // Memories (https://memories.gallery) groups the library by day: GET /api/days returns
 // [{dayid, count}] with dayid = days since 1970-01-01 in the photos' local time, newest
@@ -201,11 +201,49 @@ interface MemoriesConfig {
 
 type FaceBackend = 'recognize' | 'facerecognition';
 
+// GET /api/map/clusters?bounds=…&zoom=…: one entry per grid cell with photos.
+interface MemoriesMapCluster {
+	id: number;
+	center: [number, number];
+	count: number;
+	preview?: {fileid: number} | null;
+}
+
+// Raster tile servers, by the name the helper service knows them under. Tiles go through the
+// service, which names the app in the User-Agent and caches them on disk, as OSM's tile policy
+// asks; without the service (desktop development) they load directly.
+const TILE_PROVIDERS = {
+	osm: {
+		direct: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+		subdomains: [] as string[],
+		maxZoom: 19,
+		attribution: '© OpenStreetMap contributors',
+	},
+	topo: {
+		direct: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+		subdomains: ['a', 'b', 'c'],
+		maxZoom: 17,
+		attribution: '© OpenStreetMap contributors, SRTM · © OpenTopoMap (CC-BY-SA)',
+	},
+};
+
+export type TileProvider = keyof typeof TILE_PROVIDERS;
+
+// Marker thumbnails: square, cropped.
+const MARKER_PX = 256;
+// Day lists of map areas kept per session; every pan makes a new area.
+const MAX_MAP_DAY_LISTS = 20;
+
+export const formatMapBounds = (b: MapBounds): string => b.map((n) => String(Math.round(n * 1e6) / 1e6)).join(',');
+
 // Media URLs. In the app these come from the helper service's localhost proxy, which adds
 // the Authorization header that <img>/<video> can't send (see platform/helperService.ts).
 export interface MediaUrls {
 	memoriesUrl(path: string, shard?: number): string;
 	previewUrl(fileid: number, x: number, y: number, a: 0 | 1): string;
+	// Leaflet URL template (with {s}, {z}, {x}, {y}) for map tiles from a provider, and the
+	// values {s} takes.
+	tileUrl?(provider: TileProvider): {url: string; subdomains: string[]};
 	stop?(): void;
 }
 
@@ -308,6 +346,7 @@ export class MemoriesRepository implements PhotoRepository {
 		if (scope.folder) return `?folder=${encodeURIComponent(scope.folder)}${scope.recursive ? '&recursive=1' : ''}`;
 		if (scope.favorites) return '?fav=1';
 		if (scope.archive) return '?archive=1';
+		if (scope.mapBounds) return `?mapbounds=${formatMapBounds(scope.mapBounds)}`;
 		return '';
 	}
 
@@ -317,10 +356,17 @@ export class MemoriesRepository implements PhotoRepository {
 		if (!days) {
 			days = scope.onThisDay ? this.loadOnThisDay(refresh) : this.client.memories<MemoriesDay[]>(`/days${this.scopeQuery(scope)}`, {}, 30000);
 			this.days.set(key, days);
+			if (scope.mapBounds) this.trimMapDays();
 			// A failed load must not stick in the cache.
 			days.catch(() => this.days.delete(key));
 		}
 		return days;
+	}
+
+	// Maps keep insertion order: the oldest map areas go first.
+	private trimMapDays(): void {
+		const mapKeys = [...this.days.keys()].filter((k) => k.startsWith('?mapbounds='));
+		for (const k of mapKeys.slice(0, Math.max(0, mapKeys.length - MAX_MAP_DAY_LISTS))) this.days.delete(k);
 	}
 
 	// Memories has no On this day filter: its web app picks the matching days itself, and so do we,
@@ -465,6 +511,39 @@ export class MemoriesRepository implements PhotoRepository {
 		const query = `tags=1${faceBackend ? `&clusters=${faceBackend}` : ''}`;
 		const info = await this.client.memories<MemoriesImageInfo>(`/image/info/${encodeURIComponent(assetId)}?${query}`);
 		return imageInfoToDetails(info, faceBackend);
+	}
+
+	public async getMapInit(): Promise<MapPosition | null> {
+		const init = await this.client.memories<{pos?: {lat?: number; lon?: number} | null}>('/map/init');
+		const lat = Number(init.pos?.lat);
+		const lon = Number(init.pos?.lon);
+		return init.pos && Number.isFinite(lat) && Number.isFinite(lon) ? {lat, lon} : null;
+	}
+
+	public async getMapClusters(bounds: MapBounds, zoom: number, signal?: AbortSignal): Promise<MapCluster[]> {
+		const query = `bounds=${formatMapBounds(bounds)}&zoom=${Math.max(1, Math.round(zoom))}`;
+		const clusters = await this.client.memories<MemoriesMapCluster[]>(`/map/clusters?${query}`, {signal});
+		return clusters
+			.filter((c) => c.count > 0 && Array.isArray(c.center))
+			.map((c) => ({
+				id: c.id,
+				lat: Number(c.center[0]),
+				lon: Number(c.center[1]),
+				count: c.count,
+				previewUrl: c.preview?.fileid ? this.media.previewUrl(c.preview.fileid, MARKER_PX, MARKER_PX, 0) : null,
+			}));
+	}
+
+	public mapTiles(style: MapStyle): MapTileSource {
+		const name: TileProvider = style === 'topo' ? 'topo' : 'osm';
+		const provider = TILE_PROVIDERS[name];
+		const viaProxy = this.media.tileUrl?.(name);
+		return {
+			url: viaProxy?.url ?? provider.direct,
+			subdomains: viaProxy?.subdomains ?? provider.subdomains,
+			maxZoom: provider.maxZoom,
+			attribution: provider.attribution,
+		};
 	}
 
 	// Memories has no random endpoint: sample random days and pick images from them.

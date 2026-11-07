@@ -13,3 +13,6 @@ dist
 # misc
 .DS_Store
 npm-debug.log
+
+# helper service map tile cache (when run locally)
+service/tile-cache/

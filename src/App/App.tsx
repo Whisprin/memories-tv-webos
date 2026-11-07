@@ -146,6 +146,7 @@ const AppBase: React.FC = () => {
 						onOpenAccount={openOverlay}
 						accountLetter={accountLetter}
 						accountGradient={accountGradient}
+						accountId={activeAccountId}
 					/>
 					{overlayOpen && (
 						<AccountPanel

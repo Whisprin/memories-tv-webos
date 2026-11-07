@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Map** tab, after Places: the map on the left and the photos of the visible area on the right, following the map, as in Memories. Arrow keys pan (hold to pan faster), CH ▲ / CH ▼ zoom, OK moves to the photos and Back returns to the map. Map style (OpenStreetMap, OpenStreetMap dimmed, OpenTopoMap) is set in Settings. Tiles are fetched and cached on the TV by the app's service. The map opens where you left it, else at your newest photo.
+
+### Changed
+- **Account** in the menu is now **Settings**: your accounts, and the map style.
+
 ## 1.2.0 — 2026-10-27
 
 Installs over 1.1.0; accounts and settings are kept.

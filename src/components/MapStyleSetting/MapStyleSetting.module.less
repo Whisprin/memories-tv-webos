@@ -1,0 +1,24 @@
+@import '../../styles/_mixins.less';
+
+// Same rem scale as the Accounts section above it (AccountGrid.module.less).
+.section {
+	color: @text;
+	margin-top: 2rem;
+	padding-top: 1.5rem;
+	border-top: 1px solid @hairline;
+}
+
+.heading {
+	font-size: 1.4rem;
+	margin: 0 0 1rem;
+	font-weight: 600;
+}
+
+.options {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.options > * {
+	margin: 0 1rem 1rem 0;
+}

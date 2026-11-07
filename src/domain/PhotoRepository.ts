@@ -1,4 +1,4 @@
-import type {Album, AlbumDetails, AssetDetails, Folder, Person, Place, Tag, TimelineAsset, TimelineBucket, TimelineScope} from './types';
+import type {Album, AlbumDetails, AssetDetails, Folder, MapBounds, MapCluster, MapPosition, MapStyle, MapTileSource, Person, Place, Tag, TimelineAsset, TimelineBucket, TimelineScope} from './types';
 
 export interface PhotoRepository {
 	getBuckets(scope?: TimelineScope): Promise<TimelineBucket[]>;
@@ -16,6 +16,12 @@ export interface PhotoRepository {
 	// Memories' folders root (its Folders setting), and the subfolders of a folder.
 	getFolderRoot(): Promise<string>;
 	getSubfolders(path: string): Promise<Folder[]>;
+
+	// Map: where the newest photo with a location was taken (null when none has one), the
+	// markers inside an area at a zoom level, and the tiles to draw.
+	getMapInit(): Promise<MapPosition | null>;
+	getMapClusters(bounds: MapBounds, zoom: number, signal?: AbortSignal): Promise<MapCluster[]>;
+	mapTiles(style: MapStyle): MapTileSource;
 
 	searchRandomImages(scope: TimelineScope, size: number): Promise<TimelineAsset[]>;
 

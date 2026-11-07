@@ -434,3 +434,44 @@ describe('Show in 4K', () => {
 		expect(photoToAsset({fileid: 1, dayid: MAR_1, mimetype: 'image/x-dcraw', basename: 'IMG_1.dng'})).toMatchObject({mimeType: 'image/x-dcraw', fileName: 'IMG_1.dng', isRaw: true});
 	});
 });
+
+describe('map', () => {
+	test('init returns the newest photo position, or null when no photo has one', async () => {
+		expect(await makeRepo(jest.fn().mockResolvedValue({pos: {lat: 47.3, lon: 8.5}})).getMapInit()).toEqual({lat: 47.3, lon: 8.5});
+		expect(await makeRepo(jest.fn().mockResolvedValue({pos: null})).getMapInit()).toBeNull();
+	});
+
+	test('clusters come with a square marker thumbnail through the proxy', async () => {
+		const memories = jest.fn().mockResolvedValue([
+			{id: 5, center: [47.3, 8.5], count: 12, preview: {fileid: 99, etag: 'x', dayid: MAR_1, w: 1, h: 1}},
+			{id: 6, center: [48, 9], count: 1, preview: null},
+			{id: 7, center: [49, 9], count: 0, preview: null},
+		]);
+		const clusters = await makeRepo(memories).getMapClusters([47, 48.123456789, 8, 9], 11.4);
+		expect(memories).toHaveBeenCalledWith('/map/clusters?bounds=47,48.123457,8,9&zoom=11', {signal: undefined});
+		expect(clusters).toEqual([
+			{id: 5, lat: 47.3, lon: 8.5, count: 12, previewUrl: 'preview:99:256x256:0'},
+			{id: 6, lat: 48, lon: 9, count: 1, previewUrl: null},
+		]);
+	});
+
+	test('a map area opens as a timeline filtered by mapbounds', async () => {
+		const memories = jest.fn().mockResolvedValue([]);
+		await makeRepo(memories).getBuckets({mapBounds: [47, 48, 8, 9]});
+		expect(memories).toHaveBeenCalledWith('/days?mapbounds=47,48,8,9', {}, 30000);
+	});
+
+	test('tiles load directly without the helper service', () => {
+		const tiles = makeRepo(jest.fn()).mapTiles('osm');
+		expect(tiles.url).toBe('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+		expect(makeRepo(jest.fn()).mapTiles('topo').maxZoom).toBe(17);
+	});
+
+	test('tiles go through the helper service when it is there', () => {
+		const repo = new MemoriesRepository({memories: jest.fn()} as unknown as NextcloudClient, {
+			...media,
+			tileUrl: (provider) => ({url: `http://127.0.0.1:{s}/t/tile/${provider}/{z}/{x}/{y}.png`, subdomains: ['1', '2']}),
+		});
+		expect(repo.mapTiles('osm-dimmed')).toMatchObject({url: 'http://127.0.0.1:{s}/t/tile/osm/{z}/{x}/{y}.png', subdomains: ['1', '2']});
+	});
+});

@@ -12,7 +12,7 @@ const today = (): string => {
 	return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 };
 
-const scopeKey = ({albumId, personId, placeId, tagId, folder, recursive, favorites, archive, onThisDay, order}: TimelineScope): string => {
+export const timelineScopeKey = ({albumId, personId, placeId, tagId, folder, recursive, favorites, archive, onThisDay, mapBounds, order}: TimelineScope): string => {
 	if (albumId) return `album:${albumId}:${order ?? 'desc'}`;
 	if (personId) return `person:${personId}`;
 	if (placeId) return `place:${placeId}`;
@@ -21,6 +21,7 @@ const scopeKey = ({albumId, personId, placeId, tagId, folder, recursive, favorit
 	if (favorites) return 'favorites';
 	if (archive) return 'archive';
 	if (onThisDay) return `onthisday:${today()}`;
+	if (mapBounds) return `map:${mapBounds.join(',')}`;
 	return 'main';
 };
 
@@ -55,7 +56,7 @@ const NO_FAILED_MONTHS: ReadonlySet<string> = new Set();
 export const useTimeline = (scopeInput: TimelineScope | null = MAIN_TIMELINE) => {
 	const repository = useRepository();
 	const queryClient = useQueryClient();
-	const key = scopeInput ? scopeKey(scopeInput) : '';
+	const key = scopeInput ? timelineScopeKey(scopeInput) : '';
 	// Callers may pass a fresh-but-equal object each render; identity follows the key.
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const scope = useMemo(() => scopeInput, [key]);

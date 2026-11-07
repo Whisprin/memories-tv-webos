@@ -28,7 +28,7 @@ describe('NavigationRail', () => {
 		const buttons = screen.getAllByRole('button');
 		const rail = buttons[0]?.closest(`#${NAVIGATION_RAIL_ID}`);
 		expect(rail).not.toBeNull();
-		expect(buttons).toHaveLength(10);
+		expect(buttons).toHaveLength(11);
 		buttons.forEach(button => expect(button.classList.contains(spottableClass)).toBe(true));
 	});
 

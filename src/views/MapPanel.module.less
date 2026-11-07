@@ -1,0 +1,85 @@
+@import '../styles/_theme.less';
+
+.panel {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.header {
+	display: flex;
+	align-items: baseline;
+	flex-shrink: 0;
+	min-width: 0;
+	padding: @page-inset-top @page-inset-x 24px 0;
+}
+
+.title {
+	font-size: var(--font-display);
+	font-weight: 600;
+	color: @text;
+	white-space: nowrap;
+}
+
+.count {
+	flex-shrink: 0;
+	margin-left: 24px;
+	font-size: var(--font-caption);
+	color: @text-subtle;
+	white-space: nowrap;
+}
+
+.keys {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	margin: 0 0 0 auto;
+	padding: 0;
+	list-style: none;
+	font-size: var(--font-caption);
+	color: @text-muted;
+	white-space: nowrap;
+}
+
+.keyHelp {
+	display: flex;
+	align-items: center;
+	margin-left: 48px;
+}
+
+.keyCap {
+	margin-right: 16px;
+	padding: 4px 16px;
+	border: 2px solid @text-subtle;
+	border-radius: 12px;
+	color: @text;
+	font-weight: 600;
+}
+
+.split {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.mapSide {
+	flex-shrink: 0;
+	box-sizing: border-box;
+	padding-bottom: @page-inset-top;
+	transition: opacity 160ms ease-out;
+}
+
+.timelineSide {
+	flex-shrink: 0;
+	min-width: 0;
+	transition: opacity 160ms ease-out;
+}
+
+.timelineContainer {
+	height: 100%;
+}
+
+// the side without focus
+.dim {
+	opacity: 0.55;
+}

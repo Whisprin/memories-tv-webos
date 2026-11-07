@@ -60,6 +60,8 @@ export interface TimelineScope {
 	archive?: boolean;
 	// photos and videos taken on today's date (± a few days, as set in Memories) in past years
 	onThisDay?: boolean;
+	// photos taken inside an area of the map
+	mapBounds?: MapBounds;
 	order?: AssetOrder;
 }
 
@@ -110,4 +112,32 @@ export interface AssetDetails {
 	people: string[];
 	unnamedPeople: number;
 	tags: string[];
+}
+
+// [minLat, maxLat, minLon, maxLon], the order Memories uses for `bounds` and `mapbounds`.
+export type MapBounds = readonly [number, number, number, number];
+
+export interface MapPosition {
+	lat: number;
+	lon: number;
+}
+
+// One marker on the map: photos grouped by Memories into a grid cell.
+export interface MapCluster {
+	id: number;
+	lat: number;
+	lon: number;
+	count: number;
+	// thumbnail of one photo in the cluster, ready for <img src>
+	previewUrl: string | null;
+}
+
+export type MapStyle = 'osm' | 'osm-dimmed' | 'topo';
+
+// Raster tiles for the map, as Leaflet takes them: `url` with {s}, {z}, {x}, {y}.
+export interface MapTileSource {
+	url: string;
+	subdomains: string[];
+	maxZoom: number;
+	attribution: string;
 }

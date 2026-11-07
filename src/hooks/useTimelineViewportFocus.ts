@@ -9,6 +9,8 @@ interface UseTimelineViewportFocusOptions {
 	// The grid's scroll container.
 	viewportRef: RefObject<HTMLElement | null>;
 	rightEdgeSpotlightId?: string;
+	// Where Left goes from the first card of a row; the rail by default.
+	leftEdgeSpotlightId?: string;
 }
 
 // Enact types getCurrent()/focus() around ReactNode, but at runtime they deal in DOM nodes.
@@ -45,7 +47,7 @@ interface Card {
  * loading, the key waits for it, and a focused card that has left the viewport (wheel scroll,
  * scrubber jump) is never navigated from — the next key re-anchors on what is on screen.
  */
-export const useTimelineViewportFocus = ({enabled, viewportRef, rightEdgeSpotlightId}: UseTimelineViewportFocusOptions) => {
+export const useTimelineViewportFocus = ({enabled, viewportRef, rightEdgeSpotlightId, leftEdgeSpotlightId = `#${NAVIGATION_RAIL_ID}`}: UseTimelineViewportFocusOptions) => {
 	// Spotlight focuses without scrolling in this overflow container, including when it moves
 	// focus in from outside (rail hand-back, last-focused restore after an overlay closes).
 	useEffect(() => {
@@ -110,7 +112,7 @@ export const useTimelineViewportFocus = ({enabled, viewportRef, rightEdgeSpotlig
 				// At the first card of any row, make the rail the explicit destination. Relying on
 				// Spotlight's global geometry here is unreliable with the nested grid.
 				spotlight.setPointerMode(false);
-				spotlight.focus(`#${NAVIGATION_RAIL_ID}`);
+				spotlight.focus(leftEdgeSpotlightId);
 			} else if (dir === 'right') {
 				if (rightEdgeSpotlightId) {
 					spotlight.setPointerMode(false);
@@ -130,7 +132,7 @@ export const useTimelineViewportFocus = ({enabled, viewportRef, rightEdgeSpotlig
 		// window in the bubble phase (same trick as useAutoHideControls).
 		window.addEventListener('keydown', handleKeyDown, {capture: true});
 		return () => window.removeEventListener('keydown', handleKeyDown, {capture: true});
-	}, [enabled, rightEdgeSpotlightId, viewportRef]);
+	}, [enabled, rightEdgeSpotlightId, leftEdgeSpotlightId, viewportRef]);
 };
 
 /** Focuses `preferred` when given and rendered, otherwise the card that best represents the view. */
