@@ -290,4 +290,10 @@ function handleTile(req, res, rest, userAgent) {
   fetchUpstream(tile, cached, userAgent);
 }
 
-module.exports = { handleTile: handleTile, parse: parse, freshFor: freshFor, memoryStore: memoryStore, diskStore: diskStore };
+// Tests use their own store instead of a cache folder next to the service.
+function useStore(s) {
+  store = s;
+  inFlight = {};
+}
+
+module.exports = { handleTile: handleTile, parse: parse, freshFor: freshFor, memoryStore: memoryStore, diskStore: diskStore, useStore: useStore };

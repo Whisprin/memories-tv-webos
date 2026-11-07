@@ -16,7 +16,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Whisprin/memories-tv-webos" alt="MIT license"></a>
 </p>
 
-> Every section of Memories' web app works except Explore, Map and Trash. Memories TV only reads your library: nothing on your server is changed. See the [changelog](CHANGELOG.md) for what's new.
+> Every section of Memories' web app works except Explore and Trash. Memories TV only reads your library: nothing on your server is changed. See the [changelog](CHANGELOG.md) for what's new.
 
 <p align="center">
   <img src="docs/timeline.jpg" width="900" alt="Memories TV showing the timeline: the navigation rail on the left, a justified grid of photos and videos with RAW and duration badges, and the date scrubber on the right">
