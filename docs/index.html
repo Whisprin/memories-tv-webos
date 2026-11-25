@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Memories TV – Nextcloud Memories on your LG TV</title>
+<title>Memories TV: Nextcloud Memories on your LG TV</title>
 <meta name="description" content="Memories TV brings your Nextcloud Memories photo and video library to LG webOS TVs, built to be browsed from the couch with the remote.">
 <link rel="canonical" href="https://memoriestv.whisprin.eu/">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -176,8 +176,8 @@
   </figure>
 
   <section id="sections">
-    <h2>Your whole library, section by section</h2>
-    <p>Memories TV follows Memories' web app, in the same order. It only reads your library: nothing on your server is changed.</p>
+    <h2>Library sections</h2>
+    <p>Memories TV has the same sections as the Memories web app, in the same order. It only reads your library and never changes anything on your server.</p>
     <ul class="sections" aria-label="Sections">
       <li>Timeline</li><li>Folders</li><li>Favourites</li><li>Albums</li><li>People</li>
       <li>Archive</li><li>On this day</li><li>Places</li><li>Map</li><li>Tags</li>
@@ -188,15 +188,15 @@
   <section id="features">
     <h2>Features</h2>
     <div class="grid">
-      <div class="card"><span class="icon" aria-hidden="true">🖼️</span><h3>Timeline</h3><p>Day by day, in a justified grid that keeps every photo's shape. A date scrubber jumps straight to any month or year.</p></div>
-      <div class="card"><span class="icon" aria-hidden="true">🔍</span><h3>Full-screen viewer</h3><p>Controls that fade away to leave the photo alone, an Info panel with place, people, tags and camera details, and a rotate button for sideways shots.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">🖼️</span><h3>Timeline</h3><p>Photos and videos sorted by day, in a justified grid that keeps each photo's shape. The date scrubber jumps to any month or year.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">🔍</span><h3>Full-screen viewer</h3><p>The controls fade out so only the photo is on screen. The Info panel shows place, people, tags and camera details, and a rotate button fixes sideways shots.</p></div>
       <div class="card"><span class="icon" aria-hidden="true">📺</span><h3>4K photos</h3><p>View your photos in the TV's own Media Player at the panel's full 4K resolution, page after page.</p></div>
-      <div class="card"><span class="icon" aria-hidden="true">▶️</span><h3>4K HDR Videos</h3><p>Played from the original file in up to 4K with seeking, including HDR. No transcoding needed on the server.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">▶️</span><h3>4K HDR Videos</h3><p>Videos play from the original file in up to 4K, including HDR, and you can seek. The server doesn't have to transcode anything.</p></div>
       <div class="card"><span class="icon" aria-hidden="true">🎞️</span><h3>Slideshow</h3><p>Crossfades, shuffle and an adjustable interval, and the TV's screen saver stays away while it runs.</p></div>
       <div class="card"><span class="icon" aria-hidden="true">📱</span><h3>Sign in with your phone</h3><p>Scan a QR code and approve the TV. Your password is never typed on the TV; two-factor and single sign-on work as usual. Add several servers or family members and switch between them.</p></div>
       <div class="card"><span class="icon" aria-hidden="true">🗺️</span><h3>Map</h3><p>See where your photos were taken, with the photos of the area you're looking at right beside the map. Pan with the arrow keys, zoom with CH +/−.</p></div>
-      <div class="card"><span class="icon" aria-hidden="true">📷</span><h3>RAW files</h3><p>A RAW badge, and RAW files stacked behind the JPG or HEIC of the same name when Memories stacks them.</p></div>
-      <div class="card"><span class="icon" aria-hidden="true">🎮</span><h3>Made for the remote</h3><p>Every screen works with the arrow keys; the Magic Remote pointer and scroll wheel work too.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">📷</span><h3>RAW files</h3><p>RAW files get a badge. When Memories stacks a RAW file behind the JPG or HEIC of the same name, the TV stacks it too.</p></div>
+      <div class="card"><span class="icon" aria-hidden="true">🎮</span><h3>Made for the remote</h3><p>Every screen works with the arrow keys, and you can also use the Magic Remote's pointer and scroll wheel.</p></div>
     </div>
   </section>
 
@@ -206,17 +206,18 @@
       <div class="card">
         <h3>TV</h3>
         <ul class="plain">
-          <li>An LG TV with <strong>webOS TV 23 or newer</strong> (2023 models onwards). Older TVs are not tested.</li>
+          <li>An LG TV with webOS TV 23 or newer (2023 models onwards). Older TVs are not tested.</li>
           <li><a href="https://webostv.developer.lge.com/develop/getting-started/developer-mode-app">Developer Mode</a> enabled, to install the app.</li>
+          <li>Optional: the <a href="https://github.com/webosbrew/webos-homebrew-channel">Homebrew Channel</a>, to install the app from there <a href="https://github.com/webosbrew/apps-repo/pull/308">once it's listed</a>.</li>
         </ul>
       </div>
       <div class="card">
         <h3>Server</h3>
         <ul class="plain">
-          <li><strong>Nextcloud</strong> with the <a href="https://apps.nextcloud.com/apps/memories">Memories</a> app.</li>
-          <li>Reachable over <strong>HTTPS with a publicly trusted certificate</strong>, such as Let's Encrypt.</li>
+          <li>Nextcloud with the <a href="https://apps.nextcloud.com/apps/memories">Memories</a> app.</li>
+          <li>Reachable over HTTPS with a publicly trusted certificate, such as one from Let's Encrypt.</li>
           <li>Video previews enabled in Nextcloud, for video thumbnails.</li>
-          <li>No CORS or reverse-proxy changes needed.</li>
+          <li>You don't need to change any CORS or reverse-proxy settings.</li>
         </ul>
       </div>
     </div>
@@ -224,7 +225,7 @@
 
   <section id="install">
     <h2>Install</h2>
-    <p>Memories TV installs on a TV in Developer Mode with the <a href="https://webostv.developer.lge.com/develop/tools/cli-installation/">webOS CLI</a>. It isn't in the Homebrew Channel or LG's store yet.</p>
+    <p>Memories TV installs on a TV in Developer Mode with the <a href="https://webostv.developer.lge.com/develop/tools/cli-installation/">webOS CLI</a>. Once it's <a href="https://github.com/webosbrew/apps-repo/pull/308">included in the Homebrew Channel's apps repository</a>, you'll be able to install it from the Homebrew Channel instead. It isn't in LG's store.</p>
     <ol class="steps">
       <li>Install the webOS CLI and register your TV with <code>ares-setup-device</code>.</li>
       <li>Download the <code>.ipk</code> file of the <a href="https://github.com/Whisprin/memories-tv-webos/releases/latest">latest release</a>.</li>
@@ -243,7 +244,7 @@
       <li>The TV continues by itself and opens your timeline.</li>
     </ol>
     <p class="note">The app gets its own app password, listed as <strong>Memories TV</strong> under Nextcloud → Settings → Security. Revoking it there signs the TV out.</p>
-    <p>Having trouble? See <a href="https://github.com/Whisprin/memories-tv-webos#-troubleshooting">Troubleshooting</a> or <a href="https://github.com/Whisprin/memories-tv-webos/issues">open an issue</a>.</p>
+    <p>Having trouble? See <a href="https://github.com/Whisprin/memories-tv-webos#troubleshooting">Troubleshooting</a> or <a href="https://github.com/Whisprin/memories-tv-webos/issues">open an issue</a>.</p>
   </section>
 
 </main>
