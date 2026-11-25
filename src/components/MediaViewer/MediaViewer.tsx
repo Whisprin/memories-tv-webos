@@ -219,7 +219,10 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 
 	const mediaUrl = isVideo ? repository.videoPlaybackUrl(asset.id) : repository.previewUrl(asset.id);
 	const liveUrl = isVideo ? null : repository.livePhotoVideoUrl(asset);
-	const photoClass = rotation % 180 ? `${css.photo} ${css.quarterTurn}` : css.photo;
+	// The TV draws video on its own hardware layer, which ignores CSS rotation. So the motion
+	// part of a rotated photo plays as recorded, with the photo hidden behind it.
+	const hidePhoto = rotation !== 0 && livePhase === 'playing';
+	const photoClass = `${css.photo}${rotation % 180 ? ` ${css.quarterTurn}` : ''}${hidePhoto ? ` ${css.photoHidden}` : ''}`;
 	const photoStyle = rotation ? {transform: `rotate(${rotation}deg)`} : undefined;
 
 	return (
@@ -237,8 +240,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 						autoPlay
 						playsInline
 						data-testid="live-video"
-						className={`${photoClass} ${css.liveVideo}${livePhase === 'playing' ? ` ${css.liveVisible}` : ''}`}
-						style={photoStyle}
+						className={`${css.photo} ${css.liveVideo}${livePhase === 'playing' ? ` ${css.liveVisible}` : ''}`}
 						onPlaying={handleLivePlaying}
 						onEnded={handleLiveEnded}
 						onError={handleLiveError}

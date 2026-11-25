@@ -246,6 +246,24 @@ describe('MediaViewer live and motion photos', () => {
 		expect(screen.getByRole('status').textContent).toMatch(/motion part/);
 	});
 
+	test('a rotated photo hides while its video plays unrotated (the TV can\'t rotate video)', () => {
+		// Its own id: rotations are remembered per photo for the whole test file.
+		renderViewer({...motion, id: '10'});
+		fireEvent.click(screen.getByRole('button', {name: 'rotate'}));
+		const v = liveVideo()!;
+		fireEvent.playing(v);
+		expect(v.getAttribute('style')).toBeNull();
+		expect(screen.getByAltText('').classList.contains('photoHidden')).toBe(true);
+		fireEvent.ended(v);
+		expect(screen.getByAltText('').classList.contains('photoHidden')).toBe(false);
+	});
+
+	test('an unrotated photo stays under its video', () => {
+		renderViewer(motion);
+		fireEvent.playing(liveVideo()!);
+		expect(screen.getByAltText('').classList.contains('photoHidden')).toBe(false);
+	});
+
 	test('other photos have no Live button and no video', () => {
 		renderViewer(photo);
 		expect(screen.queryByRole('button', {name: 'Live'})).toBeNull();
