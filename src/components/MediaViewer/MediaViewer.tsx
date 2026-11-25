@@ -9,7 +9,7 @@ import type {TimelineAsset} from '../../domain/types';
 import {MediaControls, ACTION_BAR_SPOTLIGHT_ID} from './MediaControls';
 import {InfoPanel} from './InfoPanel';
 import {openInTvPhotoViewer, type TvPhoto} from '../../platform/tvPhotoViewer';
-import {VideoPlayer, VideoPlayerApi} from './VideoPlayer';
+import {VideoPlayer, type VideoPlayerApi} from './VideoPlayer';
 import css from './MediaViewer.module.less';
 
 interface MediaViewerProps {

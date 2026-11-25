@@ -60,7 +60,7 @@ const AppBase: React.FC = () => {
 		[addAccount, closeOverlay],
 	);
 
-	const makeQueryClient = useCallback(
+	const queryClient = useMemo(
 		() =>
 			new QueryClient({
 				queryCache: new QueryCache({
@@ -73,8 +73,6 @@ const AppBase: React.FC = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[activeAccountId],
 	);
-
-	const queryClient = useMemo(makeQueryClient, [makeQueryClient]);
 
 	// Branch 1: no accounts at all → first-launch flow
 	if (accounts.length === 0) {

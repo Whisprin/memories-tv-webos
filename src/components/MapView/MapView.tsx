@@ -73,9 +73,12 @@ export const MapView: React.FC<MapViewProps> = ({id, tiles, dimmed, initialView,
 	const containerRef = useRef<HTMLDivElement>(null);
 	const mapRef = useRef<L.Map | null>(null);
 	const markersRef = useRef(new Map<number, {marker: L.Marker; count: number; previewUrl: string | null}>());
-	// Latest callbacks, so the map and key listeners are set up once.
+	// Latest callbacks, so the map and key listeners are set up once. Updated after each render,
+	// before the effects below run.
 	const callbacks = useRef({onViewChange, onSelect});
-	callbacks.current = {onViewChange, onSelect};
+	useEffect(() => {
+		callbacks.current = {onViewChange, onSelect};
+	});
 
 	// The map itself, once.
 	useEffect(() => {

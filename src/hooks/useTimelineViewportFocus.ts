@@ -201,7 +201,7 @@ function pickNeighbour(cr: DOMRect, focused: HTMLElement, dir: Direction, cards:
 	for (const {el, rect} of cards) {
 		if (el === focused) continue;
 		const ex = rect.left + rect.width / 2;
-		let score = Infinity;
+		let score: number;
 		if (dir === 'down') {
 			if (rect.top <= cr.top + ROW_TOLERANCE_PX) continue;
 			score = (rect.top - cr.top) * 4 + Math.abs(ex - cx);

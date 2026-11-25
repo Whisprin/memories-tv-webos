@@ -38,14 +38,25 @@ async function createRepository(account: Account): Promise<MemoriesRepository> {
 const resolveActiveId = (store: AccountsStore): string | null =>
 	store.defaultAccountId ?? store.lastActiveAccountId ?? store.accounts[0]?.id ?? null;
 
+// Checks an account with Nextcloud and builds its repository. No React state: the hook applies
+// the result in the promise's callbacks.
+async function connectAccount(account: Account): Promise<{repository: MemoriesRepository; displayName: string}> {
+	const user = await getUser(credentialsOf(account));
+	return {repository: await createRepository(account), displayName: user.displayName};
+}
+
+const findAccount = (id: string | null): Account | undefined => (id ? readAccountsStore().accounts.find(a => a.id === id) : undefined);
+
 export const useAccounts = () => {
 	let _initial: AccountsStore | undefined;
 	const getInitial = () => (_initial ??= readAccountsStore());
 
 	const [store, setStore] = useState<AccountsStore>(getInitial);
-	const [activeAccountId, setActiveAccountId] = useState<string | null>(() => resolveActiveId(getInitial()));
+	// The account the app opens with, as activate() would choose it: validating it until the
+	// mount effect has connected.
+	const [activeAccountId, setActiveAccountId] = useState<string | null>(() => findAccount(resolveActiveId(getInitial()))?.id ?? null);
 	const [repository, setRepository] = useState<PhotoRepository | null>(null);
-	const [isValidating, setIsValidating] = useState<boolean>(() => resolveActiveId(getInitial()) !== null);
+	const [isValidating, setIsValidating] = useState<boolean>(() => findAccount(resolveActiveId(getInitial())) !== undefined);
 	const [validationError, setValidationError] = useState('');
 	// The active account couldn't connect (offline, server down): shown with Try again, unlike a
 	// rejected sign-in, which opens Accounts.
@@ -67,9 +78,35 @@ export const useAccounts = () => {
 
 	useEffect(() => () => repositoryRef.current?.dispose(), []);
 
+	// Connects to an account and installs its repository, or records why it couldn't. State is
+	// set only in the callbacks, once the server has answered; activate() resets it before.
+	const connect = useCallback(
+		(account: Account): Promise<void> =>
+			connectAccount(account)
+				.then(
+					({repository: next, displayName}) => {
+						if (displayName !== account.displayName) {
+							persist(updateAccountInStore(readAccountsStore(), account.id, {displayName}));
+						}
+						installRepository(next);
+						setActiveAccountId(account.id);
+					},
+					(error: unknown) => {
+						console.error('[useAccounts] validation failed', error);
+						// A 401 means the app password was revoked (Nextcloud → Settings → Security).
+						if (error instanceof APIError && error.status === 401) setValidationError(makeAuthErrorMessage(error));
+						else setConnectionError(makeConnectErrorMessage(error));
+						installRepository(null);
+						setActiveAccountId(account.id);
+					}
+				)
+				.finally(() => setIsValidating(false)),
+		[installRepository, persist]
+	);
+
 	const activate = useCallback(async (id: string | null) => {
-		const account = id ? readAccountsStore().accounts.find(a => a.id === id) : undefined;
-		if (!id || !account) {
+		const account = findAccount(id);
+		if (!account) {
 			installRepository(null);
 			setActiveAccountId(null);
 			setIsValidating(false);
@@ -78,28 +115,14 @@ export const useAccounts = () => {
 		setIsValidating(true);
 		setValidationError('');
 		setConnectionError('');
-		try {
-			const user = await getUser(credentialsOf(account));
-			if (user.displayName !== account.displayName) {
-				persist(updateAccountInStore(readAccountsStore(), id, {displayName: user.displayName}));
-			}
-			installRepository(await createRepository(account));
-			setActiveAccountId(id);
-		} catch (error) {
-			console.error('[useAccounts] validation failed', error);
-			// A 401 means the app password was revoked (Nextcloud → Settings → Security).
-			if (error instanceof APIError && error.status === 401) setValidationError(makeAuthErrorMessage(error));
-			else setConnectionError(makeConnectErrorMessage(error));
-			installRepository(null);
-			setActiveAccountId(id);
-		} finally {
-			setIsValidating(false);
-		}
-	}, [installRepository, persist]);
+		await connect(account);
+	}, [connect, installRepository]);
 
+	// On mount, connect to the account chosen above; its state is already set up for that.
+	// Later activations are explicit (switchTo, removeAccount).
 	useEffect(() => {
-		void activate(activeAccountId);
-		// Mount only — subsequent activations are explicit (switchTo, removeAccount).
+		const account = findAccount(activeAccountId);
+		if (account) void connect(account);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
