@@ -3,6 +3,7 @@ import {useWebOSKeys} from '../../hooks/useWebOSKeys';
 import {useAutoHideControls} from '../../hooks/useAutoHideControls';
 import {useAssetRotation} from '../../hooks/useAssetRotation';
 import {useRepository} from '../../domain/RepositoryContext';
+import {getMotionAutoplay} from '../../utils/motionPhotoStore';
 import {createSpotlightContainer, forceFocus, SpottableDiv} from '../../utils/spotlight';
 import type {TimelineAsset} from '../../domain/types';
 import {MediaControls, ACTION_BAR_SPOTLIGHT_ID} from './MediaControls';
@@ -37,7 +38,14 @@ const focusActionBar = () => forceFocus(ACTION_BAR_SPOTLIGHT_ID);
 const VIDEO_OVERLAY_INTRO_MS = 4000;
 // Show in 4K hands over at most this many photos, so the player starts quickly.
 const TV_VIEWER_MAX_PHOTOS = 50;
-const TV_VIEWER_ERROR_MS = 4000;
+const NOTICE_MS = 4000;
+// The motion part fades back to the still photo over this long (MediaViewer.module.less).
+const LIVE_FADE_MS = 400;
+
+// The motion part of a live or motion photo: loading (hidden until its first frame plays),
+// playing over the photo, ending (fading back to the photo), or off.
+type LivePhase = 'off' | 'loading' | 'playing' | 'ending';
+const initialLivePhase = (asset: TimelineAsset | null): LivePhase => (asset?.liveId && getMotionAutoplay() ? 'loading' : 'off');
 
 export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, totalCount, currentIndex, position, onClose, onNavigate, onStartSlideshow}) => {
 	const repository = useRepository();
@@ -61,7 +69,7 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 
 	// Show in 4K: this photo and the ones after it go to the TV's Media Player, which pages
 	// through them itself. Videos are left out.
-	const [tvViewerFailed, setTvViewerFailed] = useState(false);
+	const [notice, setNotice] = useState<string | null>(null);
 	const showIn4K = useCallback(() => {
 		const photos: TvPhoto[] = [];
 		for (let i = currentIndex; i < totalCount && photos.length < TV_VIEWER_MAX_PHOTOS; i++) {
@@ -73,14 +81,43 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 		if (photos.length === 0) return;
 		openInTvPhotoViewer(photos).catch((error: unknown) => {
 			console.warn('[MediaViewer] could not open the TV photo viewer', error);
-			setTvViewerFailed(true);
+			setNotice("Couldn't open the TV's photo viewer.");
 		});
 	}, [currentIndex, totalCount, getAssetAt, repository]);
 	useEffect(() => {
-		if (!tvViewerFailed) return undefined;
-		const timer = window.setTimeout(() => setTvViewerFailed(false), TV_VIEWER_ERROR_MS);
+		if (!notice) return undefined;
+		const timer = window.setTimeout(() => setNotice(null), NOTICE_MS);
 		return () => window.clearTimeout(timer);
-	}, [tvViewerFailed]);
+	}, [notice]);
+
+	// Live and motion photos: their video plays over the photo, with sound as in Memories, by
+	// itself when the photo opens (unless turned off in Settings) and with the Live button.
+	// Each start remounts the video.
+	const [livePhase, setLivePhase] = useState<LivePhase>(() => initialLivePhase(asset));
+	const [liveRun, setLiveRun] = useState(0);
+	// Only a start from the Live button reports a failure; autoplay fails quietly.
+	const [liveFromButton, setLiveFromButton] = useState(false);
+	const liveActive = livePhase === 'loading' || livePhase === 'playing';
+	const toggleLive = useCallback(() => {
+		if (liveActive) {
+			setLivePhase('ending');
+			return;
+		}
+		setLiveFromButton(true);
+		setLiveRun((run) => run + 1);
+		setLivePhase('loading');
+	}, [liveActive]);
+	const handleLivePlaying = useCallback(() => setLivePhase((phase) => (phase === 'loading' ? 'playing' : phase)), []);
+	const handleLiveEnded = useCallback(() => setLivePhase((phase) => (phase === 'off' ? phase : 'ending')), []);
+	const handleLiveError = useCallback(() => {
+		setLivePhase('off');
+		if (liveFromButton) setNotice("Couldn't play the motion part of this photo.");
+	}, [liveFromButton]);
+	useEffect(() => {
+		if (livePhase !== 'ending') return undefined;
+		const timer = window.setTimeout(() => setLivePhase('off'), LIVE_FADE_MS);
+		return () => window.clearTimeout(timer);
+	}, [livePhase]);
 	const [rotation, rotate] = useAssetRotation(isVideo ? undefined : asset?.id);
 	const controlsRef = useRef<HTMLDivElement>(null);
 
@@ -117,6 +154,8 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 		setVideoIntro(true);
 		// The bar may unmount (photo → video) without a blur reaching us.
 		setActionBarFocused(false);
+		setLivePhase(initialLivePhase(asset));
+		setLiveFromButton(false);
 	}
 	const videoControlsOpen = isVideo && videoControlsVisible;
 
@@ -179,6 +218,9 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 	if (!asset) return null;
 
 	const mediaUrl = isVideo ? repository.videoPlaybackUrl(asset.id) : repository.previewUrl(asset.id);
+	const liveUrl = isVideo ? null : repository.livePhotoVideoUrl(asset);
+	const photoClass = rotation % 180 ? `${css.photo} ${css.quarterTurn}` : css.photo;
+	const photoStyle = rotation ? {transform: `rotate(${rotation}deg)`} : undefined;
 
 	return (
 		<ViewerContainer spotlightId={VIEWER_SPOTLIGHT_ID} spotlightRestrict="self-only" className={css.viewerOverlay}>
@@ -186,19 +228,28 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 				{isVideo ? (
 					<VideoPlayer src={mediaUrl} onControlsAvailable={handleVideoControlsAvailable} apiRef={playerApiRef} />
 				) : (
-					<img
-						src={mediaUrl}
-						alt=""
-						className={rotation % 180 ? `${css.photo} ${css.quarterTurn}` : css.photo}
-						style={rotation ? {transform: `rotate(${rotation}deg)`} : undefined}
+					<img src={mediaUrl} alt="" className={photoClass} style={photoStyle} />
+				)}
+				{liveUrl && livePhase !== 'off' && (
+					<video
+						key={`${asset.id}:${liveRun}`}
+						src={liveUrl}
+						autoPlay
+						playsInline
+						data-testid="live-video"
+						className={`${photoClass} ${css.liveVideo}${livePhase === 'playing' ? ` ${css.liveVisible}` : ''}`}
+						style={photoStyle}
+						onPlaying={handleLivePlaying}
+						onEnded={handleLiveEnded}
+						onError={handleLiveError}
 					/>
 				)}
 			</div>
 			{!isVideo && <SpottableDiv spotlightId={STAGE_SPOTLIGHT_ID} className={css.stage} onClick={handleStageClick} />}
 			{showInfo && <InfoPanel asset={asset} />}
-			{tvViewerFailed && (
+			{notice && (
 				<div className={css.notice} role="status">
-					Couldn&apos;t open the TV&apos;s photo viewer.
+					{notice}
 				</div>
 			)}
 			<MediaControls
@@ -217,6 +268,8 @@ export const MediaViewer: React.FC<MediaViewerProps> = React.memo(({getAssetAt, 
 				infoOpen={showInfo}
 				onToggleInfo={toggleInfo}
 				onShowIn4K={showIn4K}
+				onToggleLive={liveUrl ? toggleLive : undefined}
+				livePlaying={liveActive}
 				onActionBarFocusChange={setActionBarFocused}
 			/>
 		</ViewerContainer>

@@ -4,6 +4,7 @@ import Spotlight, {getDirection} from '@enact/spotlight';
 import {AccountGrid} from './AccountGrid';
 import {AuthForm, type AuthFormPayload, type AuthSubmitResult} from '../../components/AuthForm/AuthForm';
 import {MapStyleSetting} from '../../components/MapStyleSetting/MapStyleSetting';
+import {MotionPhotoSetting} from '../../components/MotionPhotoSetting/MotionPhotoSetting';
 import {createSpotlightContainer} from '../../utils/spotlight';
 import {useWebOSKeys} from '../../hooks/useWebOSKeys';
 import type {Account} from '../../utils/accountsStore';
@@ -156,6 +157,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({
 							onRemove={onRemove}
 							onAdd={goForm}
 						/>
+						<MotionPhotoSetting />
 						<MapStyleSetting />
 					</>
 				) : (

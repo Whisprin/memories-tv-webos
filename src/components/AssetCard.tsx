@@ -66,7 +66,12 @@ export const AssetCard: React.FC<AssetCardProps> = React.memo(({asset, onSelect,
 		<SpottableDiv className={css.assetCard} style={style} onClick={handleClick} data-asset-id={asset.id}>
 			<AssetThumbnail key={thumbnailUrl} thumbnailUrl={thumbnailUrl} assetId={asset.id} />
 
-			{asset.isRaw && <div className={css.rawBadge}>RAW</div>}
+			{(asset.isRaw || asset.liveId) && (
+				<div className={css.topBadges}>
+					{asset.liveId && <div className={css.badge}>LIVE</div>}
+					{asset.isRaw && <div className={css.badge}>RAW</div>}
+				</div>
+			)}
 
 			{isVideo && (
 				<div className={css.videoBadge}>

@@ -113,6 +113,16 @@ describe('MemoriesRepository', () => {
 		expect(repo.videoPlaybackUrl('42')).toBe('proxy:42/api/stream/42');
 	});
 
+	test('live and motion photos play their video through Memories\' livephoto endpoint', () => {
+		const repo = makeRepo(jest.fn());
+		const motion = photoToAsset({fileid: 42, dayid: MAR_1, liveid: 'self__exifbin=MotionPhotoVideo'});
+		expect(motion.liveId).toBe('self__exifbin=MotionPhotoVideo');
+		expect(repo.livePhotoVideoUrl(motion)).toBe('proxy:42/api/video/livephoto/42?liveid=self__exifbin%3DMotionPhotoVideo');
+		expect(repo.livePhotoVideoUrl(photoToAsset({fileid: 43, dayid: MAR_1}))).toBeNull();
+		// A video never counts as live, even if the server sent a liveid with it.
+		expect(photoToAsset({fileid: 44, dayid: MAR_1, isvideo: 1, liveid: 'abc'}).liveId).toBeUndefined();
+	});
+
 	test('dispose stops the media proxy', () => {
 		makeRepo(jest.fn()).dispose();
 		expect(media.stop).toHaveBeenCalled();

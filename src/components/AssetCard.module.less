@@ -56,11 +56,16 @@
 	color: inherit;
 }
 
-// Top right, as in Memories; the video badge sits bottom right.
-.rawBadge {
+// RAW and LIVE sit top right, as in Memories; the video badge sits bottom right.
+.topBadges {
 	position: absolute;
 	top: 12px;
 	right: 12px;
+	display: flex;
+	gap: 8px;
+}
+
+.badge {
 	display: flex;
 	align-items: center;
 	height: 40px;

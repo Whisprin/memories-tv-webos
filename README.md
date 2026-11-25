@@ -38,6 +38,7 @@ Memories TV started as a fork of [immich-tv-webos](https://github.com/Seeky91/im
   - **Map**: a map of where your photos were taken, with the photos of the visible area beside it (see below).
   - **Tags**: Nextcloud's collaborative tags.
 - 🔍 **Full-screen viewer**: controls that fade away to leave the photo alone, an **Info** panel (place, people, tags, camera, exposure and file details), a **4K** button that shows photos at the TV's full resolution (see below), and a rotate button for sideways shots (a local viewing preference: nothing is written to your server).
+- ✨ **Live and motion photos**: a LIVE badge in the grid, and the short video plays over the photo when it opens, then fades back to the still. The **Live** button plays it again. To play it only with the button, change **Live and motion photos** in **Settings**.
 - 📷 **RAW files**: a RAW badge on RAW photos. With Memories' *Stack RAW files with same name* on, a RAW file is hidden behind the JPG or HEIC of the same name, which gets the badge.
 - ▶️ **Videos**: played from the original file, with seeking. No transcoding needed on the server.
 - 🎞️ **Slideshow**: crossfades, shuffle, adjustable interval, and the TV screen saver stays away while it runs.
@@ -77,7 +78,7 @@ The map is drawn from [OpenStreetMap](https://www.openstreetmap.org/copyright) t
 - **4K photos:** the **4K** button in the photo viewer hands the photo, and up to 49 photos after it, to the TV's own Media Player, which shows them at the panel's full resolution. Page through them with the player's arrow keys; Back returns to Memories TV. JPG and HEIC photos are shown from the original file. RAW photos (such as DNG) are shown as the JPEG Memories converts them to on the server, and their **colours can look off**: the conversion doesn't match how the camera processes its own JPEGs. With *Stack RAW files with same name* on, a RAW file stacked behind a JPG is shown as that JPG instead.
 - **Videos** play from the original file, without transcoding (Memories' go-vod is not used), so the TV has to support the format. Tested: MP4 with H.264 or HEVC, including **HDR** HEVC video from a Galaxy S24 (the TV switches to HDR), and portrait video. The TV also reports support for VP9 and AV1, not yet tried with real files.
 - **MOV files**, such as iPhone videos, may not play: the TV reports no support for the MOV container. Not yet tried with real files.
-- **Live and motion photos** show as still photos; playing the motion part isn't supported yet.
+- **Live and motion photos:** the video comes from Memories as the phone recorded it, without transcoding, and plays with its sound, as in Memories. For Samsung and Google motion photos (JPG or HEIC), the video is stored in the photo file itself. An iPhone Live Photo plays its paired MOV file, which may not play (see MOV files above). If the video can't be played, the photo stays.
 
 ## 📥 Installation
 

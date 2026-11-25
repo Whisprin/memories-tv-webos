@@ -70,3 +70,19 @@ describe('AssetCard image failures', () => {
 		expect(loaded.getAttribute('src')).toBe('/thumbnail/video');
 	});
 });
+
+describe('AssetCard badges', () => {
+	const photo: TimelineAsset = {...asset, id: 'photo', type: 'IMAGE', durationSeconds: null};
+
+	test('LIVE on live and motion photos, next to RAW', () => {
+		render(card({...photo, liveId: 'self__exifbin=MotionPhotoVideo', isRaw: true}));
+		expect(screen.getByText('LIVE')).toBeTruthy();
+		expect(screen.getByText('RAW')).toBeTruthy();
+	});
+
+	test('no badges on a plain photo', () => {
+		render(card(photo));
+		expect(screen.queryByText('LIVE')).toBeNull();
+		expect(screen.queryByText('RAW')).toBeNull();
+	});
+});

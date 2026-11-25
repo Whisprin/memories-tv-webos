@@ -34,5 +34,7 @@ export interface PhotoRepository {
 	// format the TV decodes.
 	fullResolutionUrl(asset: TimelineAsset): string;
 	videoPlaybackUrl(assetId: string): string;
+	// The short video of a live or motion photo, null for other photos.
+	livePhotoVideoUrl(asset: TimelineAsset): string | null;
 	faceUrl(personId: string): string;
 }

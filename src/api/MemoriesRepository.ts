@@ -21,6 +21,8 @@ interface MemoriesPhoto {
 	video_duration?: number;
 	// datetaken as seconds, local wall-clock time stored as UTC
 	epoch?: number;
+	// Set on live and motion photos: where Memories finds the video, e.g.
+	// 'self__exifbin=MotionPhotoVideo' (inside the file) or an iPhone's paired MOV.
 	liveid?: string;
 	// file name, e.g. 'IMG_1234.jpg'
 	basename?: string;
@@ -308,6 +310,7 @@ export function photoToAsset(p: MemoriesPhoto, hasStackedRaw = false): TimelineA
 		isRaw: hasStackedRaw || p.mimetype === MIME_RAW,
 		mimeType: p.mimetype,
 		fileName: p.basename,
+		liveId: !isVideo && p.liveid ? p.liveid : undefined,
 	};
 }
 
@@ -572,6 +575,14 @@ export class MemoriesRepository implements PhotoRepository {
 
 	public previewUrl(assetId: string): string {
 		return this.media.previewUrl(Number(assetId), PREVIEW_W, PREVIEW_H, 1);
+	}
+
+	// GET /api/video/livephoto/<fileid>?liveid=…, as Memories' viewer plays the motion part:
+	// the video embedded in the photo (Samsung, Google), or the paired MOV (iPhone). Not
+	// transcoded, so the TV plays what the phone recorded.
+	public livePhotoVideoUrl(asset: TimelineAsset): string | null {
+		if (!asset.liveId) return null;
+		return this.media.memoriesUrl(`api/video/livephoto/${asset.id}?liveid=${encodeURIComponent(asset.liveId)}`, Number(asset.id));
 	}
 
 	public videoPlaybackUrl(assetId: string): string {

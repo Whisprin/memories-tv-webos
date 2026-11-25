@@ -29,11 +29,14 @@ interface MediaControlsProps {
 	onToggleInfo: () => void;
 	// Shows the photo in the TV's own Media Player, at the panel's full resolution.
 	onShowIn4K: () => void;
+	// Plays or stops the video of a live or motion photo; unset for other photos.
+	onToggleLive?: () => void;
+	livePlaying: boolean;
 	onActionBarFocusChange: (focused: boolean) => void;
 }
 
 export const MediaControls: React.FC<MediaControlsProps> = React.memo(
-	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, infoOpen, onToggleInfo, onShowIn4K, onActionBarFocusChange}) => {
+	({rootRef, asset, position, isVideo, controlsVisible, canGoPrev, canGoNext, onPrev, onNext, onClose, onRotate, onStartSlideshow, infoOpen, onToggleInfo, onShowIn4K, onToggleLive, livePlaying, onActionBarFocusChange}) => {
 		const handleBarFocus = useCallback(() => onActionBarFocusChange(true), [onActionBarFocusChange]);
 		const handleBarBlur = useCallback(
 			(event: React.FocusEvent<HTMLDivElement>) => {
@@ -65,6 +68,11 @@ export const MediaControls: React.FC<MediaControlsProps> = React.memo(
 					<div className={chrome.bottomBar}>
 						<ActionBar spotlightId={ACTION_BAR_SPOTLIGHT_ID} className={chrome.actionBar} onFocus={handleBarFocus} onBlur={handleBarBlur}>
 							<RoundButton icon="info" tooltipText={infoOpen ? 'Hide info' : 'Info'} onClick={onToggleInfo} />
+							{onToggleLive && (
+								<RoundButton tooltipText={livePlaying ? 'Stop' : 'Play motion'} onClick={onToggleLive}>
+									Live
+								</RoundButton>
+							)}
 							<RoundButton tooltipText="Show in 4K" onClick={onShowIn4K}>
 								4K
 							</RoundButton>

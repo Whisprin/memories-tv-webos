@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Live and motion photos**: a LIVE badge in the grid. In the viewer, the photo's short video plays over it when it opens, with its sound as in Memories, and fades back to the still photo; the **Live** button plays it again or stops it. Samsung and Google motion photos play the video stored in the photo; iPhone Live Photos play their paired MOV, which the TV may not support.
+- **Settings → Live and motion photos**: play the video when the photo opens (the default), or only with the Live button.
+
 ## 1.3.0 — 2026-11-08
 
 Installs over 1.2.0; accounts and settings are kept.

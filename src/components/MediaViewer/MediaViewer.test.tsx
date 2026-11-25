@@ -5,6 +5,7 @@ import {MediaViewer} from './MediaViewer';
 import {RepositoryProvider} from '../../domain/RepositoryContext';
 import type {PhotoRepository} from '../../domain/PhotoRepository';
 import type {TimelineAsset} from '../../domain/types';
+import {saveMotionAutoplay} from '../../utils/motionPhotoStore';
 
 // Sandstone's VideoPlayer needs real media APIs; capture the callback it would fire when its
 // transport bar shows or hides instead.
@@ -39,6 +40,7 @@ const repository = {
 	videoPlaybackUrl: (id: string) => `video:${id}`,
 	getAssetDetails,
 	fullResolutionUrl: (a: TimelineAsset) => `full:${a.id}`,
+	livePhotoVideoUrl: (a: TimelineAsset) => (a.liveId ? `live:${a.id}` : null),
 } as unknown as PhotoRepository;
 
 const renderViewer = (asset: TimelineAsset, onClose: () => void = () => {}) =>
@@ -187,5 +189,66 @@ describe('MediaViewer Show in 4K', () => {
 			{url: 'full:3', fileName: 'IMG_3.dng'},
 			{url: 'full:4', fileName: '4.jpg'},
 		]);
+	});
+});
+
+describe('MediaViewer live and motion photos', () => {
+	const motion: TimelineAsset = {...photo, id: '9', liveId: 'self__exifbin=MotionPhotoVideo'};
+	const liveVideo = () => screen.queryByTestId('live-video');
+	const liveButton = () => screen.getByRole('button', {name: 'Live'});
+
+	beforeEach(() => localStorage.clear());
+
+	test('plays the video over the photo when opened, shown once it plays, then fades back', () => {
+		renderViewer(motion);
+		const v = liveVideo()!;
+		expect(v.getAttribute('src')).toBe('live:9');
+		expect(v.classList.contains('liveVisible')).toBe(false);
+		fireEvent.playing(v);
+		expect(v.classList.contains('liveVisible')).toBe(true);
+		fireEvent.ended(v);
+		expect(v.classList.contains('liveVisible')).toBe(false);
+		act(() => {
+			jest.advanceTimersByTime(500);
+		});
+		expect(liveVideo()).toBeNull();
+		expect(screen.getByAltText('').getAttribute('src')).toBe('preview:9');
+	});
+
+	test('with autoplay off in Settings, plays only with the Live button, which also stops it', () => {
+		saveMotionAutoplay(false);
+		renderViewer(motion);
+		expect(liveVideo()).toBeNull();
+		fireEvent.click(liveButton());
+		fireEvent.playing(liveVideo()!);
+		expect(liveVideo()!.classList.contains('liveVisible')).toBe(true);
+		fireEvent.click(liveButton());
+		expect(liveVideo()!.classList.contains('liveVisible')).toBe(false);
+	});
+
+	test('the Live button replays it after it ended', () => {
+		renderViewer(motion);
+		fireEvent.ended(liveVideo()!);
+		act(() => {
+			jest.advanceTimersByTime(500);
+		});
+		fireEvent.click(liveButton());
+		expect(liveVideo()).not.toBeNull();
+	});
+
+	test('a video that fails quietly falls back to the photo, with a notice only after Live', () => {
+		renderViewer(motion);
+		fireEvent.error(liveVideo()!);
+		expect(liveVideo()).toBeNull();
+		expect(screen.queryByRole('status')).toBeNull();
+		fireEvent.click(liveButton());
+		fireEvent.error(liveVideo()!);
+		expect(screen.getByRole('status').textContent).toMatch(/motion part/);
+	});
+
+	test('other photos have no Live button and no video', () => {
+		renderViewer(photo);
+		expect(screen.queryByRole('button', {name: 'Live'})).toBeNull();
+		expect(liveVideo()).toBeNull();
 	});
 });

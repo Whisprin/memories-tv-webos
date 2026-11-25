@@ -71,6 +71,20 @@
 	outline: none;
 }
 
+// The video of a live or motion photo, laid over the photo in the same box: absolutely
+// positioned, the flex container still centres it. Hidden until its first frame plays, so a
+// slow start shows the photo rather than black; fades back to the photo when it ends.
+.liveVideo {
+	position: absolute;
+	opacity: 0;
+	transition: opacity 0.4s ease-out;
+
+	&.liveVisible {
+		opacity: 1;
+		transition-duration: 0.2s;
+	}
+}
+
 // Quarter turns lay the image out in a screen-rotated box, then rotate it into place.
 .quarterTurn {
 	width: 100vh;

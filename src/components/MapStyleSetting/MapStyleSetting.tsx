@@ -1,7 +1,7 @@
 import React, {useMemo} from 'react';
 import Button from '@enact/sandstone/Button';
 import {MAP_STYLES, MAP_STYLE_LABELS, useMapStyle} from '../../utils/mapViewStore';
-import css from './MapStyleSetting.module.less';
+import css from '../SettingsSection.module.less';
 
 // Settings: how the Map tab draws the map. Applies right away, also to a map open behind Settings.
 export const MapStyleSetting: React.FC = () => {

@@ -14,6 +14,9 @@ export interface TimelineAsset {
 	// the file's own MIME type and name, when the server sends them
 	mimeType?: string;
 	fileName?: string;
+	// Memories' liveid: set on live and motion photos, whose short video
+	// livePhotoVideoUrl plays
+	liveId?: string;
 	city?: string | null;
 	country?: string | null;
 }
