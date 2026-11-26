@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon-source.png" width="128" alt="Memories TV icon: a camera aperture on blue">
+  <img src="assets/icon-rounded.png" width="128" alt="Memories TV icon: a camera aperture on blue">
 </p>
 
 <h1 align="center">Memories TV</h1>

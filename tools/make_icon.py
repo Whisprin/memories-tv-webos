@@ -1,25 +1,17 @@
-# Generates the Memories TV app icons: a generic camera aperture on a Nextcloud-style blue.
-# Usage: python3 tools/make_icon.py  (needs Pillow and numpy). Writes assets/icon-source.png,
-# assets/icon-store.png and webos-meta/icon{,-large,-mini}.png.
+# Generates the Memories TV app icons: a generic camera aperture on a flat Nextcloud-style blue.
+# Usage: python3 tools/make_icon.py  (needs Pillow). Writes assets/icon-source.png,
+# assets/icon-store.png, assets/icon-rounded.png, webos-meta/icon{,-large,-mini}.png and
+# docs/{icon,favicon}.png.
 import math
 
-import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 S = 2048  # draw at 2x, downscale for smooth edges
 
-def diag_gradient(w, h, c1, c2):
-    y, x = np.mgrid[0:h, 0:w]
-    t = ((x / w) * 0.4 + (y / h) * 0.6)[..., None]
-    c1 = np.array(c1, float); c2 = np.array(c2, float)
-    return Image.fromarray((c1 + (c2 - c1) * t).astype(np.uint8), 'RGB')
-
-# Background: the blue common to Nextcloud and its apps (around #0082c9), lighter top-left
-bg = diag_gradient(S, S, (26, 158, 226), (0, 98, 160)).convert('RGBA')
-# soft light behind the aperture
-glow = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-ImageDraw.Draw(glow).ellipse([S*0.18, S*0.2, S*0.86, S*0.88], fill=(255, 255, 255, 46))
-bg = Image.alpha_composite(bg, glow.filter(ImageFilter.GaussianBlur(S * 0.09)))
+# Background: one flat blue. Keep it the same as "iconColor" in webos-meta/appinfo.json, the
+# colour of the launcher tile around the icon, so the tile's edge blends into the icon.
+BG = (0x0c, 0x7f, 0xc0)
+bg = Image.new('RGBA', (S, S), BG + (255,))
 
 def aperture(layer, cx, cy, R, r, blades=6, rotation=-15):
     """Classic iris: blades bounded by the extended edges of a central polygon."""
@@ -72,6 +64,15 @@ root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 icon = bg.convert('RGB').resize((1024, 1024), Image.LANCZOS)
 icon.save(os.path.join(root, 'assets', 'icon-source.png'), optimize=True)
 for path, size in [('assets/icon-store.png', 160), ('webos-meta/icon-large.png', 130),
-                   ('webos-meta/icon.png', 80), ('webos-meta/icon-mini.png', 60)]:
+                   ('webos-meta/icon.png', 80), ('webos-meta/icon-mini.png', 60),
+                   ('docs/icon.png', 304), ('docs/favicon.png', 64)]:
     icon.resize((size, size), Image.LANCZOS).save(os.path.join(root, path), optimize=True)
+
+# The README can't round images with CSS (GitHub strips it), so it gets a copy with
+# transparent corners, at about the corner radius of the launcher tile on the TV (12%).
+mask = Image.new('L', (S, S), 0)
+ImageDraw.Draw(mask).rounded_rectangle([0, 0, S - 1, S - 1], radius=S * 0.12, fill=255)
+rounded = bg.convert('RGB').convert('RGBA')
+rounded.putalpha(mask)
+rounded.resize((256, 256), Image.LANCZOS).save(os.path.join(root, 'assets', 'icon-rounded.png'), optimize=True)
 print('icons written')
